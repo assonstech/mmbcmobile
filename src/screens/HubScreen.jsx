@@ -1,0 +1,212 @@
+import React, { useEffect, useState, useCallback } from "react";
+import {
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import KnowledgeCard from "../components/KnowledgeCard";
+import DarkColors from "../colors/dark";
+import LightColors from "../colors/light";
+import { FontFamily } from "../styles/fontStyle";
+import { fetchKnowledgePosts } from "../controllers/KnowledgeController";
+import { getFullImageUrl } from "../common/HttpSerivce";
+import { timeAgo } from "../utils/timeHelper";
+import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
+import DatePicker from "react-native-date-picker"; // <-- new library
+
+const isDarkMode = true;
+const colors = isDarkMode ? DarkColors : LightColors;
+
+const HubScreen = () => {
+    const [posts, setPosts] = useState([]);
+    const [allPosts, setAllPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(null);
+
+    const loadPosts = async () => {
+        try {
+            const data = await fetchKnowledgePosts();
+            const formattedData = data?.map(item => ({
+                id: item.id.toString(),
+                name: item.createdBy || "Admin",
+                timeAgo: timeAgo(item.createdAt),
+                createdAt: item.createdAt,
+                description: item.content,
+                image: item.image ? { uri: getFullImageUrl(item.image) } : null,
+            })) || [];
+            setPosts(formattedData);
+            setAllPosts(formattedData);
+        } catch (err) {
+            console.log("Error fetching posts:", err);
+        }
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            await loadPosts();
+            setLoading(false);
+        };
+        fetchData();
+    }, []);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadPosts();
+        setRefreshing(false);
+    }, []);
+
+    const filterByDate = (date) => {
+        const filtered = allPosts.filter(post => {
+            const postDate = new Date(post.createdAt);
+            return postDate.toDateString() === date.toDateString();
+        });
+        setPosts(filtered);
+    };
+
+    const openDatePicker = () => {
+        setShowDatePicker(true);
+    };
+
+    const clearFilter = () => {
+        setSelectedDate(null);
+        setPosts(allPosts);
+    };
+
+    const formatDateText = (date) => {
+        if (!date) return "Filter";
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return date.toLocaleDateString(undefined, options);
+    };
+
+    return (
+        <SafeAreaView style={{ flex: 1, paddingBottom: 80, backgroundColor: colors.bottomTabbarLabelColor }}>
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.headerText}>Knowledge Hub</Text>
+                <View style={styles.filterContainer}>
+                    <TouchableOpacity style={styles.filterButton} onPress={openDatePicker}>
+                        <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
+                        <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
+                        {selectedDate && (
+                            <TouchableOpacity onPress={clearFilter} style={{ marginLeft: 8 }}>
+                                <Image source={require("../assets/icons/close.png")} style={styles.cancelIcon} />
+                            </TouchableOpacity>
+                        )}
+                    </TouchableOpacity>
+
+                </View>
+            </View>
+
+            {/* Date Picker Modal */}
+            <DatePicker
+                modal
+                mode="date"
+                open={showDatePicker}
+                date={selectedDate || new Date()}
+                onConfirm={(date) => {
+                    setShowDatePicker(false);
+                    setSelectedDate(date);
+                    filterByDate(date);
+                }}
+                onCancel={() => setShowDatePicker(false)}
+            />
+
+            {loading ? (
+                <>
+                    <View style={{marginHorizontal:16}}>
+                        <KnowledgeCardSkeleton />
+                        <KnowledgeCardSkeleton />
+                    </View>
+                </>
+            ) : posts.length === 0 ? (
+                <View style={styles.noPostContainer}>
+                    <Text style={styles.noPostText}>No posts available {selectedDate && 'for the selected date.'}</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={posts}
+                    renderItem={({ item }) => <KnowledgeCard item={item} />}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingVertical: 16 }}
+                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                />
+            )}
+
+        </SafeAreaView>
+    );
+};
+
+export default HubScreen;
+
+const styles = StyleSheet.create({
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+    },
+    headerText: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 20,
+        fontWeight: "600",
+        lineHeight: 28,
+        color: colors.text,
+    },
+    filterContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    filterButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderRadius: 9999,
+        borderColor: colors.textInputBorderColor,
+    },
+    filterIcon: {
+        width: 24,
+        height: 24,
+        tintColor: colors.text,
+        marginRight: 8,
+    },
+    cancelIcon: {
+        width: 20,
+        height: 20,
+        tintColor: colors.text,
+    },
+    filterText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        fontWeight: "500",
+        lineHeight: 24,
+        color: colors.text,
+    },
+    separator: {
+        height: 8,
+        backgroundColor: colors.itemSeparateColor,
+    },
+    noPostContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 50,
+    },
+    noPostText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        color: colors.text,
+    },
+
+});

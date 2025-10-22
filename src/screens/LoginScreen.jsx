@@ -1,0 +1,223 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Image,
+  Text,
+  View,
+  Dimensions,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+  Alert,
+  BackHandler,
+} from 'react-native';
+import { KeyboardAvoidingScrollView } from 'react-native-keyboard-avoiding-scroll-view';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import DarkColors from '../colors/dark';
+import LightColors from '../colors/light';
+import DefaultTextInput from '../components/DefaultTextInput';
+import DefaultButton from '../components/DefaultButton';
+import { FontFamily } from '../styles/fontStyle';
+import Screen from '../utils/Screen';
+import { login } from '../controllers/LoginController'
+import { exitApp } from '@logicwind/react-native-exit-app';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const isDarkMode = true;
+const colors = isDarkMode ? DarkColors : LightColors;
+
+export default function LoginScreen() {
+  const navigation = useNavigation();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const logoPosition = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(1)).current;
+  const formPosition = useRef(new Animated.Value(50)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+  const secondLogoOpacity = useRef(new Animated.Value(0)).current;
+
+
+
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(logoPosition, {
+          toValue: -SCREEN_HEIGHT / 3.2,
+          useNativeDriver: true,
+        }),
+        Animated.spring(logoScale, {
+          toValue: 0.65,
+          useNativeDriver: true,
+        }),
+        Animated.timing(formPosition, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(formOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(secondLogoOpacity, {
+          toValue: 0.08,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 700);
+    return () => clearTimeout(timeout);
+  }, []);
+
+
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        exitApp()
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => subscription.remove();
+    }, [])
+  )
+
+  const handleLogin = async () => {
+    Keyboard.dismiss();
+
+    setLoading(true);
+    const res = await login(email, password);
+
+    if (res.success) {
+      navigation.replace(Screen.MainTabs);
+    } else {
+      Alert.alert('Login Failed', res.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
+        <Image
+          source={require('../../src/assets/images/appLogo.png')}
+          style={{ width: 361, height: 361, resizeMode: 'contain' }}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          transform: [{ translateY: logoPosition }, { scale: logoScale }],
+        }}
+      >
+        <Image
+          source={require('../../src/assets/images/appLogo.png')}
+          style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
+        />
+      </Animated.View>
+
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingScrollView
+          keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          keyboardDismissMode="none"
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+        >
+          <Animated.View
+            style={[
+              styles.formContainer,
+              { opacity: formOpacity, transform: [{ translateY: formPosition }] },
+            ]}
+          >
+            <View style={{ gap: 12, marginBottom: 20 }}>
+              <Text style={styles.title}>Login account</Text>
+              <Text style={styles.body}>
+                If you don't have an account,{' '}
+                <Text style={{ color: colors.signUpTextColor }}>Sign up</Text>
+              </Text>
+            </View>
+
+            <DefaultTextInput
+              label="Email Address"
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <DefaultTextInput
+              label="Password"
+              placeholder="Enter your password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+
+            <View>
+              <DefaultButton
+                title={loading ? 'Logging in...' : 'Login'}
+                onPress={handleLogin}
+                disabled={loading}
+              />
+              <Text style={[styles.body, { alignSelf: 'center', marginVertical: 8 }]}>
+                Forgot your password?
+              </Text>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingScrollView>
+      </TouchableWithoutFeedback>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  secondLogoContainer: {
+    ...StyleSheet.absoluteFillObject,
+    marginTop: '15%',
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: FontFamily.SemiBold,
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 32,
+    color: colors.text,
+  },
+  body: {
+    fontFamily: FontFamily.Regular,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.loginAccountColor,
+    fontWeight: '500',
+  },
+  formContainer: {
+    width: '95%',
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+    paddingBottom: 60,
+    marginBottom: 50,
+    gap: Platform.OS === 'ios' ? 10 : 6,
+  },
+});
