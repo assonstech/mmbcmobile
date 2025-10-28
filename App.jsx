@@ -19,12 +19,16 @@ import EventDetailScreen from './src/screens/EventDetailScreen'
 import MainTabs from './src/screens/MainTabs';
 import DarkColors from './src/colors/dark';
 import Screen from './src/utils/Screen';
+import { useNotification } from "./src/notifications/useNotification";
+
 
 const Stack = createNativeStackNavigator();
 const isDarkMode = true;
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState(null);
+
+  useNotification()
 
   useEffect(() => {
     const checkToken = async () => {

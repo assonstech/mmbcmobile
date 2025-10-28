@@ -2,13 +2,16 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:3000/api'
-  : 'http://localhost:3000/api';
+// const BASE_URL = Platform.OS === 'android'
+//   ? 'http://10.0.2.2:3000/api'
+//   : 'http://localhost:3000/api';
 
-const BASE_Image_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:3000'
-  : 'http://localhost:3000';
+// const BASE_Image_URL = Platform.OS === 'android'
+//   ? 'http://10.0.2.2:3000'
+//   : 'http://localhost:3000';
+const BASE_URL = 'http://assonstech-001-site2.ktempurl.com/api/'
+
+const BASE_Image_URL = 'http://assonstech-001-site2.ktempurl.com'
 
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
 const TIMEOUT = 15000;

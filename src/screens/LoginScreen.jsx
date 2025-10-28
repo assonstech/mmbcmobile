@@ -12,15 +12,15 @@ import {
   Alert,
   BackHandler,
 } from 'react-native';
-import { KeyboardAvoidingScrollView } from 'react-native-keyboard-avoiding-scroll-view';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { KeyboardAvoidingScrollView } from 'react-native-keyboard-avoiding-scroll-view';
 import DarkColors from '../colors/dark';
 import LightColors from '../colors/light';
 import DefaultTextInput from '../components/DefaultTextInput';
 import DefaultButton from '../components/DefaultButton';
 import { FontFamily } from '../styles/fontStyle';
 import Screen from '../utils/Screen';
-import { login } from '../controllers/LoginController'
+import { login } from '../controllers/LoginController';
 import { exitApp } from '@logicwind/react-native-exit-app';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -40,9 +40,6 @@ export default function LoginScreen() {
   const formOpacity = useRef(new Animated.Value(0)).current;
   const secondLogoOpacity = useRef(new Animated.Value(0)).current;
 
-
-
-
   useEffect(() => {
     const timeout = setTimeout(() => {
       Animated.parallel([
@@ -55,7 +52,7 @@ export default function LoginScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(formPosition, {
-          toValue: 0,
+          toValue: 70,
           duration: 500,
           useNativeDriver: true,
         }),
@@ -65,7 +62,7 @@ export default function LoginScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(secondLogoOpacity, {
-          toValue: 0.08,
+          toValue: 0.1,
           duration: 500,
           useNativeDriver: true,
         }),
@@ -74,71 +71,68 @@ export default function LoginScreen() {
     return () => clearTimeout(timeout);
   }, []);
 
-
-
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        exitApp()
+        exitApp();
         return true;
       };
-
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
       return () => subscription.remove();
     }, [])
-  )
+  );
 
   const handleLogin = async () => {
     Keyboard.dismiss();
-
     setLoading(true);
-    const res = await login(email, password);
 
+    const res = await login(email, password);
     if (res.success) {
       navigation.replace(Screen.MainTabs);
     } else {
       Alert.alert('Login Failed', res.message);
     }
+
     setLoading(false);
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
-        <Image
-          source={require('../../src/assets/images/appLogo.png')}
-          style={{ width: 361, height: 361, resizeMode: 'contain' }}
-        />
-      </Animated.View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Background logo overlay */}
+        <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
+          <Image
+            source={require('../../src/assets/images/appLogo.png')}
+            style={{ width: 361, height: 361, resizeMode: 'contain', opacity: 0.1 }}
+          />
+        </Animated.View>
 
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          justifyContent: 'center',
-          alignItems: 'center',
-          transform: [{ translateY: logoPosition }, { scale: logoScale }],
-        }}
-      >
-        <Image
-          source={require('../../src/assets/images/appLogo.png')}
-          style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
-        />
-      </Animated.View>
+        {/* Animated main logo behind the form */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            transform: [{ translateY: logoPosition }, { scale: logoScale }],
+            zIndex: 0,
+          }}
+        >
+          <Image
+            source={require('../../src/assets/images/appLogo.png')}
+            style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
+          />
+        </Animated.View>
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        {/* Form container with scroll only on focused input */}
         <KeyboardAvoidingScrollView
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 50 }}
           enableOnAndroid
-          keyboardDismissMode="none"
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+          keyboardOpeningTime={0}
+          keyboardShouldPersistTaps="handled"
         >
           <Animated.View
             style={[
@@ -180,8 +174,8 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
         </KeyboardAvoidingScrollView>
-      </TouchableWithoutFeedback>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -190,6 +184,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     marginTop: '15%',
     alignItems: 'center',
+    zIndex: 0,
   },
   title: {
     fontFamily: FontFamily.SemiBold,
@@ -208,6 +203,7 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '95%',
     alignSelf: 'center',
+    justifyContent:'flex-end',
     backgroundColor: '#fff',
     borderRadius: 24,
     padding: 16,
@@ -219,5 +215,6 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     marginBottom: 50,
     gap: Platform.OS === 'ios' ? 10 : 6,
+    zIndex: 1,
   },
 });

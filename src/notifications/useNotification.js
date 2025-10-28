@@ -1,81 +1,40 @@
-// import { useEffect } from 'react';
-// import { PermissionsAndroid, Platform } from 'react-native';
-// import messaging from '@react-native-firebase/messaging';
-// import notifee, { AndroidImportance } from '@notifee/react-native';
+import { useEffect } from 'react';
+import { OneSignal, LogLevel } from 'react-native-onesignal';
 
-// const requestUserPermission = async () => {
-//   if (Platform.OS === 'android' && Platform.Version >= 33) {
-//     const granted = await PermissionsAndroid.request(
-//       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-//     );
-//     console.log(
-//       granted === PermissionsAndroid.RESULTS.GRANTED
-//         ? '✅ Notification permission granted'
-//         : '❌ Notification permission denied'
-//     );
-//   } else if (Platform.OS === 'ios') {
-//     await notifee.requestPermission();
-//   }
-// };
+const ONE_SIGNAL_APP_ID = '1525beea-619c-44b2-89d1-94a139d8bf2f'; // Replace with your actual OneSignal App ID
 
-// // 🔔 Custom Notifee notification display
-// const displayNotification = async (title, body) => {
-//   try {
-//     const channelId = await notifee.createChannel({
-//       id: 'default',
-//       name: 'Default Channel',
-//       importance: AndroidImportance.HIGH,
-//     });
+export const useNotification = () => {
+  useEffect(() => {
+    // Enable verbose logging (remove in production)
+    OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
-//     await notifee.displayNotification({
-//       title: title || 'New Message',
-//       body: body || 'You received a new notification',
-//       android: {
-//         channelId,
-//         smallIcon: 'ic_launcher', // must exist in your resources
-//         importance: AndroidImportance.HIGH,
-//         pressAction: { id: 'default' },
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error showing notification:', error);
-//   }
-// };
 
-// export const useNotification = () => {
-//   useEffect(() => {
-//     const setupNotifications = async () => {
-//       await requestUserPermission();
+    // Initialize OneSignal
+    OneSignal.initialize(ONE_SIGNAL_APP_ID);
 
-//       // ✅ Get FCM token
-//       const token = await messaging().getToken();
-//       console.log('📱 FCM Token:', token);
+    // Prompt for push notifications (optional, can remove after testing)
+    OneSignal.Notifications.requestPermission(false);
 
-//       // ✅ Subscribe to topic
-//       try {
-//         await messaging().subscribeToTopic('mmbc');
-//         console.log('📡 Subscribed to topic: mmbc');
-//       } catch (err) {
-//         console.error('❌ Failed to subscribe to topic:', err);
-//       }
+    // Optional: Handle notification received while app is in foreground
+    const foregroundHandler = OneSignal.Notifications.addEventListener(
+      'received',
+      notification => {
+        console.log('Notification received:', notification);
+      }
+    );
 
-//       // ✅ Foreground messages
-//       const unsubscribe = messaging().onMessage(async remoteMessage => {
-//         console.log('💬 Foreground message received:', remoteMessage);
-//         const { title, body } = remoteMessage.data || remoteMessage.notification || {};
-//         await displayNotification(title, body);
-//       });
+    // Optional: Handle notification opened
+    const openedHandler = OneSignal.Notifications.addEventListener(
+      'opened',
+      result => {
+        console.log('Notification opened:', result);
+      }
+    );
 
-//       // ✅ Background messages (handled once globally)
-//       messaging().setBackgroundMessageHandler(async remoteMessage => {
-//         console.log('📩 Background message received:', remoteMessage);
-//         const { title, body } = remoteMessage.data || remoteMessage.notification || {};
-//         await displayNotification(title, body);
-//       });
-
-//       return unsubscribe;
-//     };
-
-//     setupNotifications();
-//   }, []);
-// };
+    // Cleanup listeners on unmount
+    return () => {
+      foregroundHandler.remove();
+      openedHandler.remove();
+    };
+  }, []);
+};

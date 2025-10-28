@@ -255,7 +255,7 @@ const HomeScreen = ({ navigation }) => {
                 onCancel={() => setShowDatePicker(false)}
             />
 
-            <View style={{ paddingVertical: 16 }}>
+            <View style={{ paddingTop: 20 }}>
                 <FlipCard
                     frontImage={require("../assets/images/Front.png")}
                     backImage={require("../assets/images/Back.png")}
@@ -267,7 +267,7 @@ const HomeScreen = ({ navigation }) => {
             <Animated.View style={[styles.cardContainer, { transform: [{ translateY }] }]}
                 {...panResponder.panHandlers}>
                 {/* <TouchableOpacity activeOpacity={1} onPress={toggleExpand}> */}
-                <View style={[styles.header, { paddingTop: isExpanded && insets.top }]}>
+                <View style={[styles.header, { paddingTop: (Platform.OS == 'ios' && isExpanded) && insets.top }]}>
                     <Text style={styles.headerText}>Welcome to MMBC</Text>
                     <View style={styles.filterContainer}>
                         <TouchableOpacity style={styles.filterButton} onPress={openDatePicker}>
@@ -308,7 +308,7 @@ const HomeScreen = ({ navigation }) => {
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={renderEventItem}
                         contentContainerStyle={{ paddingBottom: 110, paddingHorizontal: 16 }}
-                        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                        ItemSeparatorComponent={() => <View style={{ height: 25 }} />}
                         scrollEnabled={true}
                         refreshing={refreshing}
                         onRefresh={onRefresh}
