@@ -1,22 +1,18 @@
 import React, { memo, useState } from "react";
-import { TouchableOpacity, View, Text, Image, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
+import { TouchableOpacity, View, Text, Image, StyleSheet, ActivityIndicator } from "react-native";
 import { FontFamily } from "../styles/fontStyle";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 
-const { width } = Dimensions.get("window");
-const isDardMode = true
-const colors = isDardMode ? DarkColors : LightColors
+const isDarkMode = true;
+const colors = isDarkMode ? DarkColors : LightColors;
 
 const EventCard = ({ item, onPress }) => {
-    const [loading, setLoading] = useState(true);
+    console.log("item",item)
+    const [loading, setLoading] = useState(false);
+
     return (
-        <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={onPress}
-            activeOpacity={0.8}
-        >
-            {/* Top Image Section */}
+        <TouchableOpacity style={styles.cardContainer} onPress={onPress} activeOpacity={0.8}>
             <View style={styles.imageContainer}>
                 {loading && (
                     <ActivityIndicator
@@ -31,10 +27,17 @@ const EventCard = ({ item, onPress }) => {
                         }}
                     />
                 )}
-                <Image source={item.image} style={styles.cardImage} onLoadStart={() => setLoading(true)}
-                    onLoadEnd={() => setLoading(false)} />
 
-                {/* Rule & Price Top-Right */}
+                {item.image && (
+                    <Image
+                        source={item.image}  // Keep your original { uri: ... } object
+                        style={styles.cardImage}
+                        onLoadStart={() => setLoading(true)}
+                        onLoadEnd={() => setLoading(false)}
+                    />
+                )}
+
+                {/* Price Top-Right */}
                 <View style={styles.topRight}>
                     <Text style={styles.priceText}>{item.price} MMK</Text>
                 </View>
@@ -48,26 +51,25 @@ const EventCard = ({ item, onPress }) => {
                 </View>
             </View>
 
-            {/* Bottom Section: Date & Time */}
+            {/* Bottom Row */}
             <View style={styles.bottomRow}>
-                <View style={{ flexDirection: 'row', gap: 2 }}>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
                     <Image source={require('../assets/icons/calendar.png')} style={{ width: 24, height: 24 }} />
-                    <Text style={styles.dateText}>{item.date}</Text>
+                    <Text style={styles.dateText}>{item?.date}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 2 }}>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
                     <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24 }} />
                     <Text style={styles.timeText}>{item.time}</Text>
-
                 </View>
-
             </View>
-            <View style={{ borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, flex: 1, backgroundColor: colors.primary, margin: 2 }}>
+
+            {/* Rule Section */}
+            <View style={styles.ruleContainer}>
                 <Text style={styles.ruleText}>{item.rule}</Text>
             </View>
-
         </TouchableOpacity>
-    )
-}
+    );
+};
 
 export default memo(EventCard);
 
@@ -77,41 +79,31 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         backgroundColor: colors.background,
         elevation: 3,
+        marginBottom: 16,
     },
     imageContainer: {
-        paddingVertical: 4,
-        paddingHorizontal: 4,
         width: "100%",
         height: 220,
         position: "relative",
+        padding: 4,
     },
     cardImage: {
         width: "100%",
         height: "100%",
-        resizeMode: "cover",
         borderRadius: 20,
+        resizeMode: "cover",
     },
     topRight: {
         position: "absolute",
         top: 8,
         right: 8,
-        alignItems: "flex-end",
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: 'rgba(255,255,255,0.4)',
         borderRadius: 9999,
         paddingHorizontal: 16,
-        paddingVertical: 8
-
-    },
-    ruleText: {
-        color: "#fff",
-        fontFamily: FontFamily.Medium,
-        fontSize: 12,
-        paddingHorizontal: 16,
         paddingVertical: 8,
-        textAlign: 'center'
     },
     priceText: {
-        color: "#fff",
+        color: '#fff',
         fontFamily: FontFamily.SemiBold,
         fontSize: 14,
     },
@@ -139,7 +131,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-around",
         alignItems: "center",
         height: 80,
-        padding: 16,
+        paddingHorizontal: 16,
     },
     dateText: {
         fontFamily: FontFamily.Medium,
@@ -154,5 +146,23 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 24,
         color: "#fff",
+    },
+    ruleContainer: {
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        flex: 1,
+        backgroundColor: colors.primary,
+        margin: 2,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 8,
+    },
+    ruleText: {
+        color: "#fff",
+        fontFamily: FontFamily.Medium,
+        fontSize: 12,
+        textAlign: 'center',
     },
 });

@@ -9,7 +9,8 @@ import { Platform } from 'react-native';
 // const BASE_Image_URL = Platform.OS === 'android'
 //   ? 'http://10.0.2.2:3000'
 //   : 'http://localhost:3000';
-const BASE_URL = 'http://assonstech-001-site2.ktempurl.com/api/'
+
+const BASE_URL = 'http://assonstech-001-site2.ktempurl.com/api'
 
 const BASE_Image_URL = 'http://assonstech-001-site2.ktempurl.com'
 

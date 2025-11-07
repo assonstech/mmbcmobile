@@ -12,6 +12,7 @@ const HeaderWithActions = ({
   onBackPress,
   onNextPress,
   showNext = false,
+  buttonText = "Next",
   nextDisabled = false,
 }) => {
   return (
@@ -58,7 +59,7 @@ const HeaderWithActions = ({
               { color: nextDisabled ? colors.loginAccountColor : colors.text },
             ]}
           >
-            Next
+            {buttonText}
           </Text>
         </TouchableOpacity>
       ) : (

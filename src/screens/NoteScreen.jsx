@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Image,
     Platform,
@@ -14,6 +14,9 @@ import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import ImageViewing from "react-native-image-viewing";
+import { fetchCEO } from "../controllers/MemberController";
+import { fetchNote } from "../controllers/NoteController";
+import { getFullImageUrl } from "../common/HttpSerivce";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -34,31 +37,53 @@ const HorizontalProfileCard = ({ item, onPress }) => (
 const MyProfileScreen = ({ navigation }) => {
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
+    const [ceo, setCeo] = useState({ name: "", profileImage: "", position: "" });
+    const [noteMessage, setNoteMessage] = useState("");
+    const [secretaries, setSecretaries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [ceoImageLoading, setCeoImageLoading] = useState(true);
 
-    // Sample horizontal images
-    const horizontalData = [
-        {
-            id: "1",
-            image: require("../../src/assets/images/image.png"),
-            name: "Mr. Frank Chair Man",
-            phone: "+1 234 567 890",
-            email: "ceo@institute.com",
-        },
-        {
-            id: "2",
-            image: require("../../src/assets/images/image.png"),
-            name: "Ms. Jane Doe",
-            phone: "+1 987 654 321",
-            email: "assistant@institute.com",
-        },
-        {
-            id: "3",
-            image: require("../../src/assets/images/image.png"),
-            name: "Mr. John Smith",
-            phone: "+1 555 123 456",
-            email: "manager@institute.com",
-        },
-    ];
+
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch CEO info
+                setLoading(true); // start loading
+
+                const ceoRes = await fetchCEO();
+                if (ceoRes.success && ceoRes.data.length > 0) {
+                    const ceoData = ceoRes.data[0];
+                    setCeo({
+                        name: ceoData.representiveName,
+                        profileImage: ceoData.companyOrIndividualImage,
+                        position: "CEO of institute", // static
+                    });
+                }
+
+                // Fetch Note info
+                const noteRes = await fetchNote();
+                if (noteRes) {
+                    setNoteMessage(noteRes.noteMessage || "");
+                    setSecretaries(
+                        noteRes.Secretaries?.map((sec, index) => ({
+                            id: index.toString(), // ensure unique key
+                            name: sec.name,
+                            phone: sec.phone,
+                            email: sec.email,
+                            image: { uri: getFullImageUrl(sec.photoPath) },
+                        })) || []
+                    );
+                }
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            } finally {
+                setLoading(false); // end loading
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const openImageViewer = (image) => {
         setSelectedImage(image);
@@ -92,40 +117,59 @@ const MyProfileScreen = ({ navigation }) => {
                 {/* Profile Image */}
                 <TouchableOpacity
                     style={styles.profileWrapper}
-                    onPress={() => openImageViewer(require("../../src/assets/images/avatar.png"))}
+                    onPress={() => openImageViewer({uri: getFullImageUrl(ceo.profileImage)})}
                 >
                     <Image
-                        source={require("../../src/assets/images/avatar.png")}
+                        source={ceo.profileImage
+                            ? { uri: getFullImageUrl(ceo.profileImage) }
+                            : null
+                        }
                         style={styles.profileImage}
                     />
                 </TouchableOpacity>
 
                 {/* User Info */}
                 <View style={styles.infoContainer}>
-                    <Text style={styles.nameText}>{"Mr. Frank Chair Man"}</Text>
-                    <Text style={styles.emailText}>{"CEO of institute"}</Text>
+                    <Text style={styles.nameText}>{ceo.name}</Text>
+                    <Text style={styles.emailText}>{ceo.position}</Text>
                 </View>
 
                 {/* Message Section */}
+                {/* Message Section */}
                 <View style={styles.message}>
-                    <Text style={styles.messageText}>
-                        Our goal is to create impactful digital experiences that make life easier and businesses more efficient. We are committed to excellence, innovation, and building trust with every solution we deliver. Thank you for believing in our mission.
-                    </Text>
+                    {loading ? (
+                        <View style={styles.skeletonMessage} />
+                    ) : (
+                        <Text style={styles.messageText}>
+                            {noteMessage}
+                        </Text>
+                    )}
                 </View>
 
-                <Text style={styles.assistantText}>{"Executive Assistant"}</Text>
+
+                {/* Assistant Text */}
+                {loading ? (
+                    <View style={styles.skeletonAssistant} />
+                ) : (
+                    <Text style={styles.assistantText}>{"Executive Assistant"}</Text>
+                )}
 
                 {/* Horizontal Scroll Section */}
                 <FlatList
                     horizontal
-                    data={horizontalData}
-                    keyExtractor={(item) => item.id}
+                    data={loading ? Array(3).fill({}) : secretaries} // show 3 placeholders
+                    keyExtractor={(item, index) => item.id || index.toString()}
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ marginHorizontal: 16, paddingVertical: 8 }}
-                    renderItem={({ item }) => (
-                        <HorizontalProfileCard item={item} onPress={() => openImageViewer(item.image)} />
-                    )}
+                    contentContainerStyle={{ marginHorizontal: 16, paddingVertical: 8,paddingRight:16 }}
+                    renderItem={({ item }) =>
+                        loading ? (
+                            <View style={styles.skeletonCard} />
+                        ) : (
+                            <HorizontalProfileCard item={item} onPress={() => openImageViewer(item.image)} />
+                        )
+                    }
                 />
+
             </View>
 
             {/* Image Viewer */}
@@ -214,6 +258,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         lineHeight: 24,
         color: colors.text,
+        textAlign: 'center'
     },
     assistantText: {
         fontFamily: FontFamily.SemiBold,
@@ -258,4 +303,26 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         lineHeight: 20,
     },
+    skeletonCard: {
+        marginRight: 16,
+        width: 269,
+        height: "70%", // same approximate height as horizontal card
+        borderRadius: 20,
+        backgroundColor: "#E0E0E0", // light gray skeleton
+    },
+    skeletonMessage: {
+        width: "100%",
+        height: 200, // adjust to match your real message height
+        borderRadius: 24,
+        backgroundColor: "#E0E0E0", // light gray skeleton
+    },
+    skeletonAssistant: {
+        width: 200, // approximate width of the text
+        height: 26, // same as lineHeight of assistantText
+        borderRadius: 8,
+        backgroundColor: "#E0E0E0", // light gray placeholder
+        margin: 16,
+    },
+
+
 });

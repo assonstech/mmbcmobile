@@ -111,7 +111,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
 
   // 🟩 Actual card when loaded
   const overlayItems = [
-    { icon: EnfoProfile, text: info?.companyOrIndividualName },
+    { icon: EnfoProfile, text: info?.representiveName },
     { icon: EndoCalendar, text: info?.memberNRC },
     {
       icon: EndoCard,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -9,6 +9,8 @@ import {
     Image,
     Animated,
     Easing,
+    Modal,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,8 +23,9 @@ import EndoVieo from "../assets/icons/endo-video.png";
 import EndoCalendar from "../assets/icons/endo-calendar.png";
 import EndoClock from "../assets/icons/endo-clock.png";
 
-import { fetchEventDetail } from "../controllers/EventController";
+import { fetchEventDetail, unRegisterEvent } from "../controllers/EventController";
 import { getFullImageUrl } from "../common/HttpSerivce";
+import Screen from "../utils/Screen";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -31,60 +34,73 @@ const EventDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
     const [eventDetail, setEventDetail] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [cancelling, setCancelling] = useState(false);
+    const [disabled, setDisabled] = useState(false);
 
-    const shimmerAnim = new Animated.Value(0);
+    const shimmerAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         startShimmer();
-        if (item?.id) fetchEventDetailById();
+        if (item?.id) fetchEventDetailById(true);
     }, [item?.id]);
 
     const startShimmer = () => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(shimmerAnim, {
-                    toValue: 1,
-                    duration: 1000,
-                    useNativeDriver: true,
-                    easing: Easing.linear,
-                }),
-                Animated.timing(shimmerAnim, {
-                    toValue: 0,
-                    duration: 1000,
-                    useNativeDriver: true,
-                    easing: Easing.linear,
-                }),
+                Animated.timing(shimmerAnim, { toValue: 1, duration: 1000, useNativeDriver: true, easing: Easing.linear }),
+                Animated.timing(shimmerAnim, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }),
             ])
         ).start();
     };
 
-    const fetchEventDetailById = async () => {
+    const formatTimeTo12Hour = (timeString) => {
+        if (!timeString) return "";
+        const [hour, minute] = timeString.split(":").map(Number);
+        const period = hour >= 12 ? "PM" : "AM";
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
+    };
+
+    const fetchEventDetailById = async (showLoading = true) => {
         try {
-            setLoading(true);
+            setDisabled(true)
+            if (showLoading) setLoading(true);
             const response = await fetchEventDetail(item?.id);
+            console.log('efef"', response)
             if (response?.success && response?.data?.event) {
                 setEventDetail(response.data);
             }
         } catch (err) {
             console.log("Error fetching event detail:", err.message);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
+            setDisabled(false)
+        }
+    };
+
+    const unRegister = async () => {
+        if (!eventDetail?.event?.eventid) return;
+
+        try {
+            setCancelling(true);
+            await unRegisterEvent(eventDetail.event.eventid);
+            await fetchEventDetailById(false);
+        } catch (err) {
+            console.log("Error unregistering event:", err.message);
+        } finally {
+            setCancelling(false);
         }
     };
 
     const handleButtonPress = () => {
-        if (eventDetail?.isRegistered) {
-            console.log("Cancel Registration");
-        } else {
-            navigation.navigate("EventRegister", { event: eventDetail.event });
-        }
+        if (eventDetail?.isRegistered) unRegister();
+        else navigation.navigate(Screen.EventRegistrationAsScreen, { eventId: item?.id, onFinish: () => fetchEventDetailById(false) });
     };
 
     const handleGuestPress = () => {
-        navigation.navigate("GuestListScreen", { guests: eventDetail.guests || [] });
+        navigation.navigate(Screen.GuestScreen, { isMemberInclude: eventDetail?.registration?.isMemberInclude, registrationId: eventDetail?.registration?.registrationId, guestData: eventDetail?.guests || [], onFinish: () => fetchEventDetailById(false) });
     };
 
-    // Custom Skeleton Component
     const SkeletonBlock = ({ width, height, style }) => {
         const translateX = shimmerAnim.interpolate({
             inputRange: [0, 1],
@@ -92,28 +108,8 @@ const EventDetailScreen = ({ navigation, route }) => {
         });
 
         return (
-            <View
-                style={[
-                    {
-                        backgroundColor: colors.itemSeparateColor,
-                        overflow: "hidden",
-                        borderRadius: 4,
-                        width,
-                        height,
-                        marginVertical: 4,
-                    },
-                    style,
-                ]}
-            >
-                <Animated.View
-                    style={{
-                        width: "50%",
-                        height: "100%",
-                        backgroundColor: "#e0e0e0",
-                        transform: [{ translateX }],
-                        opacity: 0.5,
-                    }}
-                />
+            <View style={[{ backgroundColor: colors.itemSeparateColor, overflow: "hidden", borderRadius: 4, width, height, marginVertical: 4 }, style]}>
+                <Animated.View style={{ width: "50%", height: "100%", backgroundColor: "#e0e0e0", transform: [{ translateX }], opacity: 0.5 }} />
             </View>
         );
     };
@@ -121,31 +117,24 @@ const EventDetailScreen = ({ navigation, route }) => {
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
-                <View style={{ paddingTop: 16,paddingHorizontal:16 }}>
+                <View style={{ padding: 16 }}>
                     <HeaderWithActions title="Event Detail" onBackPress={() => navigation.goBack()} />
                 </View>
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ScrollView
-                        contentContainerStyle={{
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            paddingBottom: 0,
-                        }}
-                    >
-                        <SkeletonBlock width={300} height={221} style={{ borderRadius: 16, marginBottom: 16 }} />
-                        <SkeletonBlock width={200} height={28} style={{ marginBottom: 12 }} />
+                <ScrollView contentContainerStyle={{ justifyContent: "center", flexGrow: 1 }}>
+                    <SkeletonBlock width={300} height={221} style={{ borderRadius: 16, alignSelf: 'center', marginBottom: 16 }} />
+                    <View style={{ marginHorizontal: 16 }}>
+                        <SkeletonBlock width={150} height={20} style={{ marginBottom: 12 }} />
                         <SkeletonBlock width={150} height={20} style={{ marginBottom: 8 }} />
-                        <SkeletonBlock width={250} height={16} style={{ marginBottom: 8 }} />
-                        <SkeletonBlock width={180} height={16} style={{ marginBottom: 8 }} />
+                        <SkeletonBlock width={250} height={20} style={{ marginBottom: 8 }} />
+                        <SkeletonBlock width={180} height={20} style={{ marginBottom: 8 }} />
                         <SkeletonBlock width={120} height={16} style={{ marginBottom: 16 }} />
-                        <SkeletonBlock width={300} height={120} style={{ marginBottom: 16 }} />
-                        <SkeletonBlock width={300} height={80} style={{ borderRadius: 16 }} />
-                    </ScrollView>
-                </View>
+                    </View>
+                    <SkeletonBlock width={300} height={120} style={{ marginBottom: 16, alignSelf: 'center' }} />
+                    <SkeletonBlock width={300} height={80} style={{ borderRadius: 16, alignSelf: 'center' }} />
+                </ScrollView>
             </SafeAreaView>
         );
     }
-
 
     if (!eventDetail) {
         return (
@@ -165,11 +154,7 @@ const EventDetailScreen = ({ navigation, route }) => {
 
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
                 <View style={styles.imageContainer}>
-                    <ImageBackground
-                        source={{ uri: getFullImageUrl(event.eventImage) }}
-                        style={styles.image}
-                        resizeMode="cover"
-                    >
+                    <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="cover">
                         <View style={styles.overlay} />
                         <View style={styles.ruleContainer}>
                             <Text style={styles.ruleText}>{event.eventRule || "No rules provided"}</Text>
@@ -188,7 +173,9 @@ const EventDetailScreen = ({ navigation, route }) => {
 
                     <View style={styles.row}>
                         <Image source={EndoClock} style={styles.icon} />
-                        <Text style={styles.infoText}>9:00 AM - 5:00 PM</Text>
+                        <Text style={styles.infoText}>
+                            {`${formatTimeTo12Hour(event.startTime)} - ${formatTimeTo12Hour(event.endTime)}`}
+                        </Text>
                     </View>
 
                     <View style={styles.row}>
@@ -197,21 +184,16 @@ const EventDetailScreen = ({ navigation, route }) => {
                     </View>
 
                     <Text style={styles.priceText}>
-                        💰 {event.eventFee ? `${event.eventFee} Ks (${event.feeType})` : "Free"}
+                        💰 {event.eventFee ? `${event.eventFee} Ks ` : "Free"}
                     </Text>
                 </View>
 
                 {isRegistered && guests?.length > 0 && (
                     <View style={styles.card}>
-                        <View style={styles.guestHeaderRow}>
+                        <TouchableOpacity style={styles.guestHeaderRow} onPress={handleGuestPress}>
                             <Text style={styles.sectionTitle}>Other Guests: {guests.length}</Text>
-                            <TouchableOpacity onPress={handleGuestPress}>
-                                <Image
-                                    source={require("../assets/icons/endo-arrow-right-01.png")}
-                                    style={styles.arrowIcon}
-                                />
-                            </TouchableOpacity>
-                        </View>
+                            <Image source={require("../assets/icons/endo-arrow-right-01.png")} style={styles.arrowIcon} />
+                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -225,24 +207,22 @@ const EventDetailScreen = ({ navigation, route }) => {
 
             <View style={styles.bottomButtonContainer}>
                 <TouchableOpacity
-                    style={[
-                        styles.bottomButton,
-                        {
-                            backgroundColor: isRegistered ? colors.cancelButton || "#E53935" : colors.button,
-                        },
-                    ]}
+                    style={[styles.bottomButton, { backgroundColor: isRegistered ? colors.cancelButton || "#E53935" : colors.button }]}
                     onPress={handleButtonPress}
+                    disabled={disabled || cancelling}
                 >
-                    <Text
-                        style={[
-                            styles.bottomButtonText,
-                            { color: isRegistered ? "#fff" : colors.text },
-                        ]}
-                    >
+                    <Text style={[styles.bottomButtonText, { color: isRegistered ? "#fff" : colors.text }]}>
                         {isRegistered ? "Cancel Registration" : "Register Now"}
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Full-screen Overlay Loading */}
+            {cancelling && (
+                <View style={styles.overlayLoading}>
+                    <ActivityIndicator size="large" color="#fff" />
+                </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -251,7 +231,7 @@ export default EventDetailScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
-    imageContainer: { width: "100%", height: 221, overflow: "hidden"},
+    imageContainer: { width: "100%", height: 221, overflow: "hidden" },
     image: { flex: 1, justifyContent: "flex-start" },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.3)" },
     ruleContainer: { backgroundColor: colors.ruleBackgroundColor },
@@ -272,6 +252,13 @@ const styles = StyleSheet.create({
     bottomButton: { borderRadius: 9999, paddingVertical: 14, alignItems: "center" },
     bottomButtonText: { fontFamily: FontFamily.SemiBold, fontSize: 16 },
 
-    // Skeleton Styles
+    overlayLoading: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+
     imageContainerSkeleton: { width: "100%", height: 221, borderRadius: 16, backgroundColor: colors.itemSeparateColor },
 });

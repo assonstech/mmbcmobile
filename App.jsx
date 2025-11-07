@@ -15,6 +15,10 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import VerificationScreen from './src/screens/VerificationScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import EventDetailScreen from './src/screens/EventDetailScreen'
+import EventRegistrationAsScreen from './src/screens/EventRegistrationAsScreen'
+import GuestScreen from './src/screens/GuestScreen'
+
+
 
 import MainTabs from './src/screens/MainTabs';
 import DarkColors from './src/colors/dark';
@@ -75,6 +79,10 @@ export default function App() {
           <Stack.Screen name={Screen.VerificationScreen} component={VerificationScreen} />
           <Stack.Screen name={Screen.ResetPasswordScreen} component={ResetPasswordScreen} />
           <Stack.Screen name={Screen.EventDetailScreen} component={EventDetailScreen} />
+          <Stack.Screen name={Screen.EventRegistrationAsScreen} component={EventRegistrationAsScreen} />
+          <Stack.Screen name={Screen.GuestScreen} component={GuestScreen} />
+
+
 
         </Stack.Navigator>
       </NavigationContainer>

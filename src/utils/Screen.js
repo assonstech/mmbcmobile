@@ -14,7 +14,9 @@ const Screen = {
   ForgotPassword:'forgotPassword',
   VerificationScreen:'verification',
   ResetPasswordScreen:'resetPassword',
-  EventDetailScreen:'eventDetail'
+  EventDetailScreen:'eventDetail',
+  EventRegistrationAsScreen:'eventRegistrationAs',
+  GuestScreen:'guestScreen',
 };
 
 export default Screen;

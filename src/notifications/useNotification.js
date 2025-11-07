@@ -33,8 +33,8 @@ export const useNotification = () => {
 
     // Cleanup listeners on unmount
     return () => {
-      foregroundHandler.remove();
-      openedHandler.remove();
+      foregroundHandler?.remove();
+      openedHandler?.remove();
     };
   }, []);
 };

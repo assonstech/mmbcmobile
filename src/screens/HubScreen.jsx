@@ -16,7 +16,7 @@ import { fetchKnowledgePosts } from "../controllers/KnowledgeController";
 import { getFullImageUrl } from "../common/HttpSerivce";
 import { timeAgo } from "../utils/timeHelper";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
-import DatePicker from "react-native-date-picker"; // <-- new library
+import CustomDatePicker from "../components/CustomDatePicker";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -62,16 +62,14 @@ const HubScreen = () => {
         setRefreshing(false);
     }, []);
 
-    const filterByDate = (date) => {
-        const filtered = allPosts.filter(post => {
-            const postDate = new Date(post.createdAt);
-            return postDate.toDateString() === date.toDateString();
-        });
+    // ✅ New unified filter function
+    const applyFilters = (date) => {
+        let filtered = allPosts;
+        if (date) {
+            const selectedStr = date.toDateString();
+            filtered = filtered.filter(post => new Date(post.createdAt).toDateString() === selectedStr);
+        }
         setPosts(filtered);
-    };
-
-    const openDatePicker = () => {
-        setShowDatePicker(true);
     };
 
     const clearFilter = () => {
@@ -81,8 +79,7 @@ const HubScreen = () => {
 
     const formatDateText = (date) => {
         if (!date) return "Filter";
-        const options = { year: 'numeric', month: 'short', day: 'numeric' };
-        return date.toLocaleDateString(undefined, options);
+        return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
     };
 
     return (
@@ -91,7 +88,7 @@ const HubScreen = () => {
             <View style={styles.header}>
                 <Text style={styles.headerText}>Knowledge Hub</Text>
                 <View style={styles.filterContainer}>
-                    <TouchableOpacity style={styles.filterButton} onPress={openDatePicker}>
+                    <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
                         <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
                         <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
                         {selectedDate && (
@@ -100,31 +97,26 @@ const HubScreen = () => {
                             </TouchableOpacity>
                         )}
                     </TouchableOpacity>
-
                 </View>
             </View>
 
-            {/* Date Picker Modal */}
-            <DatePicker
-                modal
-                mode="date"
-                open={showDatePicker}
-                date={selectedDate || new Date()}
-                onConfirm={(date) => {
-                    setShowDatePicker(false);
-                    setSelectedDate(date);
-                    filterByDate(date);
-                }}
+            {/* Custom Modal Date Picker */}
+            <CustomDatePicker
+                visible={showDatePicker}
+                initialDate={selectedDate || new Date()}
                 onCancel={() => setShowDatePicker(false)}
+                onConfirm={(date) => {
+                    setSelectedDate(date);
+                    applyFilters(date);  // Apply date filter here
+                    setShowDatePicker(false);
+                }}
             />
 
             {loading ? (
-                <>
-                    <View style={{marginHorizontal:16}}>
-                        <KnowledgeCardSkeleton />
-                        <KnowledgeCardSkeleton />
-                    </View>
-                </>
+                <View style={{ marginHorizontal: 16 }}>
+                    <KnowledgeCardSkeleton />
+                    <KnowledgeCardSkeleton />
+                </View>
             ) : posts.length === 0 ? (
                 <View style={styles.noPostContainer}>
                     <Text style={styles.noPostText}>No posts available {selectedDate && 'for the selected date.'}</Text>
@@ -149,64 +141,14 @@ const HubScreen = () => {
 export default HubScreen;
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: 16,
-    },
-    headerText: {
-        fontFamily: FontFamily.SemiBold,
-        fontSize: 20,
-        fontWeight: "600",
-        lineHeight: 28,
-        color: colors.text,
-    },
-    filterContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    filterButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderRadius: 9999,
-        borderColor: colors.textInputBorderColor,
-    },
-    filterIcon: {
-        width: 24,
-        height: 24,
-        tintColor: colors.text,
-        marginRight: 8,
-    },
-    cancelIcon: {
-        width: 20,
-        height: 20,
-        tintColor: colors.text,
-    },
-    filterText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        fontWeight: "500",
-        lineHeight: 24,
-        color: colors.text,
-    },
-    separator: {
-        height: 8,
-        backgroundColor: colors.itemSeparateColor,
-    },
-    noPostContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: 50,
-    },
-    noPostText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        color: colors.text,
-    },
-
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
+    headerText: { fontFamily: FontFamily.SemiBold, fontSize: 20, fontWeight: "600", lineHeight: 28, color: colors.text },
+    filterContainer: { flexDirection: "row", alignItems: "center" },
+    filterButton: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 9999, borderColor: colors.textInputBorderColor },
+    filterIcon: { width: 24, height: 24, tintColor: colors.text, marginRight: 8 },
+    cancelIcon: { width: 20, height: 20, tintColor: colors.text },
+    filterText: { fontFamily: FontFamily.Medium, fontSize: 16, lineHeight: 24, color: colors.text },
+    separator: { height: 8, backgroundColor: colors.itemSeparateColor },
+    noPostContainer: { flex: 1, justifyContent: "center", alignItems: "center", marginTop: 50 },
+    noPostText: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.text },
 });

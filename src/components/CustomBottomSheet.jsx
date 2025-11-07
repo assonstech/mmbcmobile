@@ -7,6 +7,7 @@ import {
   Animated,
   PanResponder,
   Pressable,
+  TouchableOpacity,
 } from 'react-native';
 
 const { height } = Dimensions.get('window');
@@ -63,11 +64,11 @@ export default function CustomBottomSheet({ visible, onClose, children }) {
     <>
       {/* Backdrop */}
       {visible && (
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose}>
           <Animated.View
             style={[styles.backdrop, { opacity: backdropOpacity }]}
           />
-        </Pressable>
+        </TouchableOpacity>
       )}
 
       {/* Sheet */}

@@ -80,34 +80,38 @@ const MyProfileScreen = ({ navigation, route }) => {
 
         fetchMemberTypes();
     }, [memberInfo]);
+    // utils/formatDate.js
+    const formatDateWithHyphen = (date) => {
+        if (!date) return "-";
+        const parsedDate = new Date(date);
+        if (isNaN(parsedDate)) return "-";
+        return parsedDate.toISOString().split("T")[0]; // YYYY-MM-DD
+    };
+
 
     const infoFields = [
         { title: "Member Code", value: memberInfo.memberCode },
+        { title: "Member Position", value: memberInfo.representivePosition },
+        { title: "Member NRC", value: memberInfo.memberNRC },
         { title: "Type of Membership", value: memberTypeText },
+        { title: "Start Date", value: formatDateWithHyphen(memberInfo.startDate) },
+        { title: "End Date", value: formatDateWithHyphen(memberInfo.endDate) },
         { title: "Address", value: memberInfo.companyOrIndividualAddress },
-        { title: "NRC", value: memberInfo.memberNRC },
-        { title: "Applicant Position", value: memberInfo.applicantPosition },
-        { title: "Nationality", value: memberInfo.memberNationality },
-        { title: "Website", value: memberInfo.website },
+        { title: "Member Nationality", value: memberInfo.representiveNationality },
+        { title: "EC Member", value: memberInfo.isBOD ? "Yes" : "No" },
         { title: "Owner Malaysia %", value: memberInfo.ownerMalaysia },
         { title: "Owner Myanmar %", value: memberInfo.ownerMyanmar },
-        { title: "Owner Other %", value: memberInfo.ownerOther },
+        { title: `Owner Other (${memberInfo.otherOwnerName}) %`, value: memberInfo.ownerOther },
+        { title: "Applicant Name", value: memberInfo.applicantName },
+        { title: "Applicant Position", value: memberInfo.applicantPosition },
+        { title: "Application Date", value: formatDateWithHyphen(memberInfo.applicationDate) },
+        { title: "Website", value: memberInfo.website },
         { title: "Nature of Business", value: memberInfo.natureOfBusiness },
-        { title: "BOD", value: memberInfo.isBOD ? "Yes" : "No" },
-        { title: "Status", value: memberInfo.status },
-        { title: "Other Owner Name", value: memberInfo.otherOwnerName },
         { title: "Telephone", value: memberInfo.telephone },
+        { title: "Owner Type", value: memberInfo.ownerType },
         { title: "Date of Registration", value: memberInfo.dateOfRegistration },
         { title: "Place of Registration", value: memberInfo.placeOfRegistration },
-        { title: "Owner Type", value: memberInfo.ownerType },
         { title: "WhatsApp", value: memberInfo.whatsApp },
-        { title: "Member Position", value: memberInfo.memberPosition },
-        { title: "Representative Name", value: memberInfo.representiveName },
-        { title: "Representative Position", value: memberInfo.representivePosition },
-        { title: "Representative NRC", value: memberInfo.representiveNRC },
-        { title: "Representative Nationality", value: memberInfo.representiveNationality },
-        { title: "Applicant Name", value: memberInfo.applicantName },
-        { title: "Application Date", value: memberInfo.applicationDate },
     ];
 
     return (
@@ -160,7 +164,7 @@ const MyProfileScreen = ({ navigation, route }) => {
                         </>
                     ) : (
                         <>
-                            <Text style={styles.nameText}>{memberInfo?.companyOrIndividualName || "No Name"}</Text>
+                            <Text style={styles.nameText}>{memberInfo?.representiveName || "No Name"}</Text>
                             <Text style={styles.emailText}>{memberInfo?.email || "No Email"}</Text>
                             <Text style={styles.phoneText}>{memberInfo?.phone || "No Phone"}</Text>
                         </>

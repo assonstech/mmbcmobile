@@ -170,7 +170,7 @@ const MoreScreen = ({ navigation }) => {
                     ) : (
                         <>
                             <Text style={styles.nameText}>
-                                {memberInfo?.companyOrIndividualName || "No Name"}
+                                {memberInfo?.representiveName || "No Name"}
                             </Text>
                             <Text style={styles.emailText}>{memberInfo?.email || "No Email"}</Text>
                             <Text style={styles.phoneText}>{memberInfo?.phone || "No Phone"}</Text>

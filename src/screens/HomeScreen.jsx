@@ -18,13 +18,13 @@ import { exitApp } from "@logicwind/react-native-exit-app";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import DatePicker from "react-native-date-picker";
 import EventCard from "../components/EventCard";
 import { fetchAllEvents } from "../controllers/EventController";
 import { getFullImageUrl } from "../common/HttpSerivce";
 import { fetchMemberInfo } from "../controllers/MemberController";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import Screen from "../utils/Screen";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -33,98 +33,96 @@ const HomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const containerOffset = Platform.OS === "android" ? 260 : 300;
     const translateY = useRef(new Animated.Value(containerOffset)).current;
+
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedChip, setSelectedChip] = useState(0);
     const [events, setEvents] = useState([]);
-    const [filteredEvents, setFilteredEvents] = useState([]); // ✅ For date filter
+    const [filteredEvents, setFilteredEvents] = useState([]);
     const [memberInfo, setMemberInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     const lastTranslateY = useRef(containerOffset);
+    const chips = ["All", "In-person", "Online", "Registered"];
 
-
-
+    // ------------------- PanResponder -------------------
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onPanResponderMove: (_, gestureState) => {
                 let newY = lastTranslateY.current + gestureState.dy;
-                if (newY < 0) newY = 0; // top limit
-                if (newY > containerOffset) newY = containerOffset; // bottom limit
+                if (newY < 0) newY = 0;
+                if (newY > containerOffset) newY = containerOffset;
                 translateY.setValue(newY);
             },
             onPanResponderRelease: (_, gestureState) => {
                 let newY = lastTranslateY.current + gestureState.dy;
-                // Snap based on gesture
                 if (gestureState.dy < -50) {
-                    // drag up
                     Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
                     lastTranslateY.current = 0;
-                    setIsExpanded(true)
-
+                    setIsExpanded(true);
                 } else if (gestureState.dy > 50) {
-                    // drag down
                     Animated.spring(translateY, { toValue: containerOffset, useNativeDriver: true }).start();
                     lastTranslateY.current = containerOffset;
-                    setIsExpanded(false)
+                    setIsExpanded(false);
                 } else {
-                    // snap back to current
                     Animated.spring(translateY, { toValue: lastTranslateY.current, useNativeDriver: true }).start();
                 }
             },
         })
     ).current;
 
-    const onRefresh = async () => {
-        setRefreshing(true);
-        await loadEvents();      // reload events
-        setRefreshing(false);
-    };
-
-    const chips = ["All", "In-person", "Online", "Registered"];
-
+    // ------------------- Data Loading -------------------
     const loadMemberInfo = async () => {
         try {
             const response = await fetchMemberInfo();
-            if (response.success) {
-                setMemberInfo(response.data);
-            } else {
-                console.error("Failed to fetch member:", response.message);
-            }
+            if (response.success) setMemberInfo(response.data);
         } catch (error) {
             console.error("Error fetching member info:", error);
         }
     };
 
+    // 🕒 helper to convert 24-hour time to 12-hour AM/PM
+    const formatTimeTo12Hour = (timeString) => {
+        if (!timeString) return "";
+        const [hour, minute] = timeString.split(":").map(Number);
+        const period = hour >= 12 ? "PM" : "AM";
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
+    };
+
+
     const loadEvents = async () => {
         try {
             const response = await fetchAllEvents();
-            console.log("respone", response)
             if (response.success) {
-                const formattedEvents = response.data.map((item) => ({
-                    id: item.eventid.toString(),
-                    name: item.eventTitle,
-                    createdBy: item.createdBy || "Admin",
-                    createdAt: item.createdDate,
-                    description: item.eventTitle,
-                    body: item.eventDescription,
-                    image: item.eventImage ? { uri: getFullImageUrl(item.eventImage) } : null,
-                    location: item.eventLocation,
-                    dateObj: new Date(item.eventDate), // ✅ store real Date
-                    date: new Date(item.eventDate).toLocaleDateString("en-GB", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                    }),
-                    price: item.eventFee,
-                    type: item.eventType,
-                    rule: item.eventRule,
-                    eventType: item.eventType,
-                    isRegistered: item.isRegistered
-                }));
+                const formattedEvents = response.data.map((item) => {
+                    const eventDate = new Date(item.eventDate);
+                    const formattedStart = formatTimeTo12Hour(item.startTime);
+                    const formattedEnd = formatTimeTo12Hour(item.endTime);
+
+                    return {
+                        id: item.eventid?.toString() ?? "",
+                        name: item.eventTitle ?? "Untitled",
+                        createdBy: item.createdBy ?? "Admin",
+                        createdAt: item.createdDate ?? new Date().toISOString(),
+                        description: item.eventTitle ?? "",
+                        body: item.eventDescription ?? "",
+                        image: item.eventImage ? { uri: getFullImageUrl(item.eventImage) } : null,
+                        location: item.eventLocation ?? "",
+                        dateObj: eventDate,
+                        date: `${eventDate.getDate().toString().padStart(2, "0")}/${(eventDate.getMonth() + 1)
+                            .toString()
+                            .padStart(2, "0")}/${eventDate.getFullYear()}`,  // 👈 formatted dd/mm/yyyy
+                        time: `${formattedStart} - ${formattedEnd}`,
+                        price: item.eventFee ?? 0,
+                        eventType: item.eventType ?? "inPerson",
+                        rule: item.eventRule ?? "",
+                        isRegistered: item.isRegistered ?? 0,
+                    };
+                });
                 setEvents(formattedEvents);
                 setFilteredEvents(formattedEvents);
             }
@@ -133,69 +131,38 @@ const HomeScreen = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-        let filtered = events;
-        console.log("fileter", filtered)
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         setLoading(true);
+    //         await Promise.all([loadEvents(), loadMemberInfo()]);
+    //         setLoading(false);
+    //     };
+    //     fetchData();
+    // }, []);
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
 
-        // Filter by date
-        if (selectedDate) {
-            const selectedStr = selectedDate.toDateString();
-            filtered = filtered.filter(
-                (item) => item.dateObj.toDateString() === selectedStr
-            );
-        }
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    await Promise.all([loadEvents(), loadMemberInfo()]);
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    if (isActive) setLoading(false);
+                }
+            };
 
-        // Filter by chip
-        switch (selectedChip) {
-            case 1: // In-person
-                filtered = filtered.filter(item => item.eventType === "inPerson");
-                console.log("itm")
-                break;
-            case 2: // Online
-                filtered = filtered.filter(item => item.eventType === "online");
-                break;
-            case 3: // Registered
-                filtered = filtered.filter(item => item.isRegistered === 1); // adjust if you have a different prop
-                break;
-            default:
-                break; // All
-        }
+            fetchData();
 
-        setFilteredEvents(filtered);
-    }, [selectedDate, selectedChip, events]);
+            return () => {
+                isActive = false; // cleanup to prevent state update on unmounted screen
+            };
+        }, [])
+    );
 
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            await Promise.all([loadEvents(), loadMemberInfo()]);
-            setLoading(false);
-        };
-        fetchData();
-    }, []);
-
-    // ✅ Apply date filter when date changes
-    useEffect(() => {
-        if (!selectedDate) {
-            setFilteredEvents(events);
-            return;
-        }
-
-        const selectedStr = selectedDate.toDateString();
-        const filtered = events.filter(
-            (item) => new Date(item.dateObj).toDateString() === selectedStr
-        );
-        setFilteredEvents(filtered);
-    }, [selectedDate, events]);
-
-    const openDatePicker = () => setShowDatePicker(true);
-
-    const formatDateText = (date) => {
-        if (!date) return "Filter";
-        const options = { year: "numeric", month: "short", day: "numeric" };
-        return date.toLocaleDateString(undefined, options);
-    };
-
+    // ------------------- Back Handler -------------------
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => {
@@ -207,22 +174,62 @@ const HomeScreen = ({ navigation }) => {
         }, [])
     );
 
-    const clearFilter = () => {
+    // ------------------- Filtering -------------------
+    const applyFilters = (date = selectedDate, chip = selectedChip) => {
+        let filtered = events;
+
+        if (date) {
+            const selectedStr = date.toDateString();
+            filtered = filtered.filter(item => item.dateObj.toDateString() === selectedStr);
+        }
+
+        switch (chip) {
+            case 1:
+                filtered = filtered.filter(item => item.eventType === "inPerson");
+                break;
+            case 2:
+                filtered = filtered.filter(item => item.eventType === "online");
+                break;
+            case 3:
+                filtered = filtered.filter(item => item.isRegistered === 1);
+                break;
+            default:
+                break;
+        }
+
+        setFilteredEvents(filtered);
+    };
+
+    const clearDateFilter = () => {
         setSelectedDate(null);
-        setFilteredEvents(events);
+        applyFilters(null, selectedChip);
+    };
+
+    useEffect(() => {
+        applyFilters();
+    }, [selectedDate, selectedChip, events]);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadEvents();
+        setRefreshing(false);
+    };
+
+    const formatDateText = (date) => {
+        if (!date) return "Filter";
+        const options = { year: "numeric", month: "short", day: "numeric" };
+        return date.toLocaleDateString(undefined, options);
     };
 
     const toggleExpand = () => {
         const toValue = isExpanded ? containerOffset : 0;
-        Animated.spring(translateY, {
-            toValue,
-            useNativeDriver: true,
-        }).start();
+        Animated.spring(translateY, { toValue, useNativeDriver: true }).start();
         setIsExpanded(!isExpanded);
     };
+
     const onClickEvent = useCallback((item) => {
-        navigation.navigate(Screen.EventDetailScreen, { item })
-    })
+        navigation.navigate(Screen.EventDetailScreen, { item });
+    });
 
     const renderEventItem = ({ item }) => (
         <EventCard item={item} onPress={() => onClickEvent(item)} />
@@ -233,7 +240,10 @@ const HomeScreen = ({ navigation }) => {
         return (
             <TouchableOpacity
                 style={[styles.chip, isSelected && styles.chipSelected]}
-                onPress={() => setSelectedChip(index)}
+                onPress={() => {
+                    setSelectedChip(index);
+                    applyFilters(selectedDate, index);
+                }}
             >
                 <Text style={styles.chipText}>{item}</Text>
             </TouchableOpacity>
@@ -242,20 +252,20 @@ const HomeScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* ✅ Date Picker Modal */}
-            <DatePicker
-                modal
-                mode="date"
-                open={showDatePicker}
-                date={selectedDate || new Date()}
-                onConfirm={(date) => {
-                    setShowDatePicker(false);
-                    setSelectedDate(date);
-                }}
+            {/* Custom Date Picker */}
+            <CustomDatePicker
+                visible={showDatePicker}
+                initialDate={selectedDate || new Date()}
                 onCancel={() => setShowDatePicker(false)}
+                onConfirm={(date) => {
+                    setSelectedDate(date);
+                    applyFilters(date, selectedChip);
+                    setShowDatePicker(false);
+                }}
             />
 
-            <View style={{ paddingTop: 20 }}>
+            {/* Flip Card */}
+            <View style={{ paddingTop: 16 }}>
                 <FlipCard
                     frontImage={require("../assets/images/Front.png")}
                     backImage={require("../assets/images/Back.png")}
@@ -264,25 +274,24 @@ const HomeScreen = ({ navigation }) => {
                 />
             </View>
 
-            <Animated.View style={[styles.cardContainer, { transform: [{ translateY }] }]}
-                {...panResponder.panHandlers}>
-                {/* <TouchableOpacity activeOpacity={1} onPress={toggleExpand}> */}
-                <View style={[styles.header, { paddingTop: (Platform.OS == 'ios' && isExpanded) && insets.top }]}>
+            {/* Animated Card */}
+            <Animated.View style={[styles.cardContainer, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
+                <View style={[styles.header, { paddingTop: (Platform.OS === 'ios' && isExpanded) && insets.top }]}>
                     <Text style={styles.headerText}>Welcome to MMBC</Text>
                     <View style={styles.filterContainer}>
-                        <TouchableOpacity style={styles.filterButton} onPress={openDatePicker}>
+                        <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
                             <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
                             <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
                             {selectedDate && (
-                                <TouchableOpacity onPress={clearFilter} style={{ marginLeft: 8 }}>
+                                <TouchableOpacity onPress={clearDateFilter} style={{ marginLeft: 8 }}>
                                     <Image source={require("../assets/icons/close.png")} style={styles.cancelIcon} />
                                 </TouchableOpacity>
                             )}
                         </TouchableOpacity>
                     </View>
                 </View>
-                {/* </TouchableOpacity> */}
 
+                {/* Chips */}
                 <View style={{ paddingVertical: 8 }}>
                     <FlatList
                         horizontal
@@ -295,7 +304,7 @@ const HomeScreen = ({ navigation }) => {
                     />
                 </View>
 
-                {/* ✅ Skeleton Loader or Filtered Events */}
+                {/* Event List */}
                 {loading ? (
                     <View style={{ paddingHorizontal: 16 }}>
                         {[...Array(5)].map((_, index) => (
@@ -309,7 +318,6 @@ const HomeScreen = ({ navigation }) => {
                         renderItem={renderEventItem}
                         contentContainerStyle={{ paddingBottom: 110, paddingHorizontal: 16 }}
                         ItemSeparatorComponent={() => <View style={{ height: 25 }} />}
-                        scrollEnabled={true}
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         ListEmptyComponent={
@@ -320,7 +328,6 @@ const HomeScreen = ({ navigation }) => {
                             </View>
                         }
                     />
-
                 )}
             </Animated.View>
         </SafeAreaView>
