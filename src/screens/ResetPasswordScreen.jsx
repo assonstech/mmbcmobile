@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { BackHandler, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
@@ -7,6 +7,7 @@ import { FontFamily } from "../styles/fontStyle";
 import DefaultTextInput from "../components/DefaultTextInput";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
+import { useFocusEffect } from "@react-navigation/native";
 
 
 const isDarkMode = true;
@@ -15,7 +16,26 @@ const colors = isDarkMode ? DarkColors : LightColors;
 const ResetPasswordScreen = ({ navigation }) => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const isPopping = useRef(false); // Use a ref to track if we are already handling the pop
 
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+            if (isPopping.current) {
+                isPopping.current = false; 
+                return;
+            }
+
+            e.preventDefault();
+
+            isPopping.current = true;
+
+            navigation.pop(3); 
+
+        });
+
+        return unsubscribe; 
+    }, [navigation]); 
 
     const isValid =
         newPassword.trim().length >= 6 &&
@@ -30,7 +50,7 @@ const ResetPasswordScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <HeaderWithActions
-                onBackPress={() => navigation.goBack()}
+                onBackPress={() => navigation.pop(3)}
             />
             <Text style={styles.headerTitle}>Change password</Text>
             <Text style={styles.bodyText}>
