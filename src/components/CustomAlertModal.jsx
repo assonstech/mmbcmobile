@@ -102,13 +102,15 @@ const CustomAlertModal = ({
 
                     {/* Buttons */}
                     <View style={styles.buttonsRow}>
-                        <TouchableOpacity
-                            onPress={onCancel}
-                            style={[styles.cancelBtn, cancelStyle]}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.buttonText]}>{cancelText}</Text>
-                        </TouchableOpacity>
+                        {onCancel && (
+                            <TouchableOpacity
+                                onPress={onCancel}
+                                style={[styles.cancelBtn, cancelStyle]}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[styles.buttonText]}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity
                             onPress={onConfirm}
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
     buttonsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        gap:8
+        gap: 8
     },
     cancelBtn: {
         flex: 1,
@@ -225,13 +227,13 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     buttonText: {
-        paddingHorizontal:20,
-        paddingVertical:16,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
         fontFamily: FontFamily.Medium,
         color: colors.text,
         fontSize: 16,
         fontWeight: '500',
         lineHeight: 24,
     },
-   
+
 });

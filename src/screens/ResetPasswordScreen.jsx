@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, BackHandler, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
@@ -8,43 +8,87 @@ import DefaultTextInput from "../components/DefaultTextInput";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
 import { useFocusEffect } from "@react-navigation/native";
+import { resetPassword } from "../controllers/MemberController";
+import CustomToast from "../components/CustomToast";
+import CustomAlertModal from "../components/CustomAlertModal";
 
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
-const ResetPasswordScreen = ({ navigation }) => {
+const ResetPasswordScreen = ({ navigation, route }) => {
+    const { email } = route?.params || ""
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const isPopping = useRef(false); // Use a ref to track if we are already handling the pop
+    const [loading, setLoading] = useState(false)
+    const overlayOpacity = useRef(new Animated.Value(0)).current;
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
+
+    const fadeInOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const fadeOutOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
 
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-            if (isPopping.current) {
-                isPopping.current = false; 
-                return;
-            }
 
-            e.preventDefault();
+    // useEffect(() => {
+    //     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+    //         if (isPopping.current) {
+    //             isPopping.current = false;
+    //             return;
+    //         }
 
-            isPopping.current = true;
+    //         e.preventDefault();
 
-            navigation.pop(3); 
+    //         isPopping.current = true;
 
-        });
+    //         navigation.pop(3);
 
-        return unsubscribe; 
-    }, [navigation]); 
+    //     });
+
+    //     return unsubscribe;
+    // }, [navigation]);
 
     const isValid =
-        newPassword.trim().length >= 6 &&
-        confirmPassword.trim().length >= 6 &&
+        newPassword.trim().length >= 4 &&
+        confirmPassword.trim().length >= 4 &&
         newPassword === confirmPassword;
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
         if (!isValid) return;
-        console.log("Password changed successfully!");
+        const postBody = {
+            email: email,
+            newPassword: newPassword
+        }
+        try {
+            setLoading(true);
+            fadeInOverlay();
+            console.log("Postbody", postBody)
+            const response = await resetPassword(postBody)
+            console.log(response)
+            if (response?.success) {
+                setAlertMessage("Password Reset Successfully");
+                setAlertVisible(true);
+            }
+        } catch (err) {
+            console.log(err)
+        } finally {
+            fadeOutOverlay()
+            setLoading(false)
+        }
     };
 
     return (
@@ -94,6 +138,38 @@ const ResetPasswordScreen = ({ navigation }) => {
             >
                 <Text style={styles.buttonText}>Change Password</Text>
             </TouchableOpacity>
+
+            {loading && (
+                <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+                    <View style={styles.loaderBox}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={styles.loaderText}>Changing password...</Text>
+                    </View>
+                </Animated.View>
+            )}
+            <CustomAlertModal
+                visible={alertVisible}
+                message={alertMessage}
+                confirmText="OK"
+                onConfirm={() =>
+                    navigation.reset({
+                        index: 0, // index of MainTabs in the stack
+                        routes: [
+                            {
+                                name: Screen.MainTabs,
+                                state: {
+                                    index: 2,
+                                    routes: [
+                                        { name: "Home" },
+                                        { name: "Hub" },
+                                        { name: "More" },
+                                    ],
+                                },
+                            },
+                        ],
+                    })
+                }
+            />
         </SafeAreaView>
     );
 };
@@ -140,5 +216,28 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         lineHeight: 24,
         color: colors.text,
+    },
+    overlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+    loaderBox: {
+        backgroundColor: "rgba(0,0,0,0.7)",
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderRadius: 14,
+        alignItems: "center",
+    },
+    loaderText: {
+        color: "#fff",
+        fontSize: 16,
+        marginTop: 10,
+        fontWeight: "600",
     },
 });

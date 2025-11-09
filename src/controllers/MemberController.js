@@ -58,3 +58,25 @@ export const getMemberTypes = async () => {
     return { success: false, message: err.message || "Network error" };
   }
 };
+
+
+export const resetPassword = async (postBody) => {
+  try {
+    const res = await http.post("/member/reset-password",postBody);
+    return res
+  } catch (err) {
+    console.log("reset password  API error:", err);
+    return { success: false, message: err.message || "Network error" };
+  }
+};
+
+
+export const changePassword = async (postBody) => {
+  try {
+    const res = await http.post("/member/change-password",postBody);
+    return res
+  } catch (err) {
+    console.log("change password info API error:", err);
+    return { success: false, message: err.message || "Network error" };
+  }
+};

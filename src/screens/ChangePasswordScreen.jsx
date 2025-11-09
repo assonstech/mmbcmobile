@@ -1,14 +1,25 @@
-import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    Animated,
+    ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import DefaultTextInput from "../components/DefaultTextInput";
-import CustomAlertModal from "../components/CustomAlertModal";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
-
+import CustomAlertModal from "../components/CustomAlertModal";
+import { changePassword } from "../controllers/MemberController";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -18,77 +29,159 @@ const ChangePasswordScreen = ({ navigation }) => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    const [loading, setLoading] = useState(false)
+    const overlayOpacity = useRef(new Animated.Value(0)).current;
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
+
+    const fadeInOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const fadeOutOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+
 
     const isValid =
         currentPassword.trim().length > 0 &&
-        newPassword.trim().length >= 6 &&
-        confirmPassword.trim().length >= 6 &&
+        newPassword.trim().length >= 4 &&
+        confirmPassword.trim().length >= 4 &&
         newPassword === confirmPassword;
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
         if (!isValid) return;
-        console.log("Password changed successfully!");
+        const postBody = {
+            oldPassword: currentPassword,
+            newPassword: confirmPassword
+        }
+        try {
+            setLoading(true);
+            fadeInOverlay();
+            console.log("Postbody", postBody)
+            const response = await changePassword(postBody)
+            console.log(response)
+            if (response?.success) {
+                setAlertMessage("Password Reset Successfully");
+                setAlertVisible(true);
+            }
+        } catch (err) {
+            console.log(err)
+        } finally {
+            fadeOutOverlay()
+            setLoading(false)
+        }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            <HeaderWithActions
-                onBackPress={() => navigation.goBack()}
-            />
-            <Text style={styles.headerTitle}>Change password</Text>
-            <Text style={styles.bodyText}>
-                Enter a new password below to change your password.
-            </Text>
-
-            {/* Inputs */}
-            <View style={{ marginVertical: 28 }}>
-                <DefaultTextInput
-                    label="Current Password"
-                    placeholder="Enter your current password"
-                    secureTextEntry
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                />
-                <DefaultTextInput
-                    label="New Password"
-                    placeholder="Enter your new password"
-                    secureTextEntry
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                />
-                <DefaultTextInput
-                    label="Confirm Password"
-                    placeholder="Re-enter your new password"
-                    secureTextEntry
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                />
-
-                {/* ✅ Show warning if passwords don't match */}
-                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                    <Text style={styles.errorText}>Passwords do not match</Text>
-                )}
-            </View>
-
-            {/* Submit Button */}
-            <TouchableOpacity
-                onPress={handleChangePassword}
-                disabled={!isValid}
-                style={[
-                    styles.button,
-                    {
-                        backgroundColor: isValid ? colors.button : colors.itemSeparateColor, // Red when invalid
-                        opacity: isValid ? 1 : 0.7,
-                    },
-                ]}
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
-                <Text style={styles.buttonText}>Change Password</Text>
-            </TouchableOpacity>
+                <ScrollView
+                    contentContainerStyle={{ paddingBottom: 40 }}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <HeaderWithActions onBackPress={() => navigation.goBack()} />
+                    <Text style={styles.headerTitle}>Change password</Text>
+                    <Text style={styles.bodyText}>
+                        Enter a new password below to change your password.
+                    </Text>
 
-            {/* Forgot Password */}
-            <Text style={[styles.body, { alignSelf: "center", marginVertical: 8 }]} onPress={() => navigation.navigate(Screen.ForgotPassword)}>
-                Forgot your password?
-            </Text>
+                    {/* Inputs */}
+                    <View style={{ marginVertical: 28 }}>
+                        <DefaultTextInput
+                            label="Current Password"
+                            placeholder="Enter your current password"
+                            secureTextEntry
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                        />
+                        <DefaultTextInput
+                            label="New Password"
+                            placeholder="Enter your new password"
+                            secureTextEntry
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                        />
+                        <DefaultTextInput
+                            label="Confirm Password"
+                            placeholder="Re-enter your new password"
+                            secureTextEntry
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                        />
+
+                        {/* ✅ Show warning if passwords don't match */}
+                        {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                            <Text style={styles.errorText}>Passwords do not match</Text>
+                        )}
+                    </View>
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                        onPress={handleChangePassword}
+                        disabled={!isValid}
+                        style={[
+                            styles.button,
+                            {
+                                backgroundColor: isValid ? colors.button : colors.itemSeparateColor,
+                                opacity: isValid ? 1 : 0.7,
+                            },
+                        ]}
+                    >
+                        <Text style={styles.buttonText}>Change Password</Text>
+                    </TouchableOpacity>
+
+                    {/* Forgot Password */}
+                    <Text
+                        style={[styles.body, { alignSelf: "center", marginVertical: 8 }]}
+                        onPress={() => navigation.navigate(Screen.ForgotPassword)}
+                    >
+                        Forgot your password?
+                    </Text>
+                </ScrollView>
+            </KeyboardAvoidingView>
+            {loading && (
+                <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+                    <View style={styles.loaderBox}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={styles.loaderText}>Changing password...</Text>
+                    </View>
+                </Animated.View>
+            )}
+            <CustomAlertModal
+                visible={alertVisible}
+                message={alertMessage}
+                confirmText="OK"
+                onConfirm={() =>
+                    navigation.reset({
+                        index: 0, // index of MainTabs in the stack
+                        routes: [
+                            {
+                                name: Screen.MainTabs,
+                                state: {
+                                    index: 2,
+                                    routes: [
+                                        { name: "Home" },
+                                        { name: "Hub" },
+                                        { name: "More" },
+                                    ],
+                                },
+                            },
+                        ],
+                    })
+                }
+            />
         </SafeAreaView>
     );
 };
@@ -142,5 +235,28 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         color: colors.loginAccountColor,
         fontWeight: "500",
+    },
+    overlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+    loaderBox: {
+        backgroundColor: "rgba(0,0,0,0.7)",
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderRadius: 14,
+        alignItems: "center",
+    },
+    loaderText: {
+        color: "#fff",
+        fontSize: 16,
+        marginTop: 10,
+        fontWeight: "600",
     },
 });

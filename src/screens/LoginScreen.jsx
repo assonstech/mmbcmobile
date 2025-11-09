@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   BackHandler,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { KeyboardAvoidingScrollView } from 'react-native-keyboard-avoiding-scroll-view';
@@ -22,6 +23,7 @@ import { FontFamily } from '../styles/fontStyle';
 import Screen from '../utils/Screen';
 import { login } from '../controllers/LoginController';
 import { exitApp } from '@logicwind/react-native-exit-app';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const isDarkMode = true;
@@ -39,6 +41,28 @@ export default function LoginScreen() {
   const formPosition = useRef(new Animated.Value(50)).current;
   const formOpacity = useRef(new Animated.Value(0)).current;
   const secondLogoOpacity = useRef(new Animated.Value(0)).current;
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  const fadeInOverlay = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const fadeOutOverlay = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -85,15 +109,23 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     Keyboard.dismiss();
     setLoading(true);
-
-    const res = await login(email, password);
-    if (res.success) {
-      navigation.replace(Screen.MainTabs);
-    } else {
-      Alert.alert('Login Failed', res.message);
+    fadeInOverlay();
+    try {
+      const res = await login(email, password);
+      if (res.success) {
+        navigation.replace(Screen.MainTabs);
+      } else {
+        setAlertMessage("Invalid email or Password");
+        setAlertVisible(true);
+      }
+    } catch (err) {
+      console.log(err)
+    } finally {
+      fadeOutOverlay
+      setLoading(false);
     }
 
-    setLoading(false);
+
   };
 
   return (
@@ -164,7 +196,7 @@ export default function LoginScreen() {
 
             <View>
               <DefaultButton
-                title={loading ? 'Logging in...' : 'Login'}
+                title={'Login'}
                 onPress={handleLogin}
                 disabled={loading}
               />
@@ -174,6 +206,20 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
         </KeyboardAvoidingScrollView>
+        <CustomAlertModal
+          visible={alertVisible}
+          message={alertMessage}
+          confirmText="OK"
+          onConfirm={() => setAlertVisible(false)}
+        />
+        {loading && (
+          <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+            <View style={styles.loaderBox}>
+              <ActivityIndicator size="large" color="#fff" />
+              <Text style={styles.loaderText}>Logging In...</Text>
+            </View>
+          </Animated.View>
+        )}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -203,7 +249,7 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '95%',
     alignSelf: 'center',
-    justifyContent:'flex-end',
+    justifyContent: 'flex-end',
     backgroundColor: '#fff',
     borderRadius: 24,
     padding: 16,
@@ -216,5 +262,28 @@ const styles = StyleSheet.create({
     marginBottom: 50,
     gap: Platform.OS === 'ios' ? 10 : 6,
     zIndex: 1,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loaderBox: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  loaderText: {
+    color: "#fff",
+    fontSize: 16,
+    marginTop: 10,
+    fontWeight: "600",
   },
 });

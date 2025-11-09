@@ -68,7 +68,9 @@ const VerificationScreen = ({ navigation, route }) => {
       console.log("respone", response)
 
       if (response?.success) {
-        navigation.navigate(Screen.ResetPasswordScreen);
+        navigation.navigate(Screen.ResetPasswordScreen, {
+          email: email
+        });
       } else {
         showToast("Invalid OTP code" || "Failed to resend OTP ❌", "error");
       }
