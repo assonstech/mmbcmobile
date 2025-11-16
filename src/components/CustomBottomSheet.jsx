@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 const { height } = Dimensions.get('window');
-const SNAP_POINT = height * 0.5; // 50% height
+const SNAP_POINT = height * 0.65; // 50% height
 
 export default function CustomBottomSheet({ visible, onClose, children }) {
   const translateY = useRef(new Animated.Value(height)).current;
@@ -72,18 +72,19 @@ export default function CustomBottomSheet({ visible, onClose, children }) {
       )}
 
       {/* Sheet */}
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={[
-          styles.sheet,
-          {
-            transform: [{ translateY }],
-          },
-        ]}
-      >
-        <View style={styles.handle} />
-        <View style={styles.content}>{children}</View>
-      </Animated.View>
+      {visible && (
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[
+            styles.sheet,
+            { transform: [{ translateY }] },
+          ]}
+        >
+          <View style={styles.handle} />
+          <View style={styles.content}>{children}</View>
+        </Animated.View>
+      )}
+
     </>
   );
 }
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'black',
   },
 });

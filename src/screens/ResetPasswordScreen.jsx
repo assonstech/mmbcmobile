@@ -7,9 +7,7 @@ import { FontFamily } from "../styles/fontStyle";
 import DefaultTextInput from "../components/DefaultTextInput";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
-import { useFocusEffect } from "@react-navigation/native";
 import { resetPassword } from "../controllers/MemberController";
-import CustomToast from "../components/CustomToast";
 import CustomAlertModal from "../components/CustomAlertModal";
 
 
@@ -17,10 +15,10 @@ const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const ResetPasswordScreen = ({ navigation, route }) => {
-    const { email } = route?.params || ""
+    const { email, isFromLogin } = route?.params || {}
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const isPopping = useRef(false); // Use a ref to track if we are already handling the pop
+    const isPopping = useRef(false); 
     const [loading, setLoading] = useState(false)
     const overlayOpacity = useRef(new Animated.Value(0)).current;
     const [alertVisible, setAlertVisible] = useState(false);
@@ -41,6 +39,29 @@ const ResetPasswordScreen = ({ navigation, route }) => {
             useNativeDriver: true,
         }).start();
     };
+
+    const handleCofirm = () => {
+        if (isFromLogin) {
+            navigation.navigate(Screen.Login)
+        } else {
+            navigation.reset({
+                index: 0,
+                routes: [
+                    {
+                        name: Screen.MainTabs,
+                        state: {
+                            index: 2,
+                            routes: [
+                                { name: "Home" },
+                                { name: "Hub" },
+                                { name: "More" },
+                            ],
+                        },
+                    },
+                ],
+            })
+        }
+    }
 
 
 
@@ -151,24 +172,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 visible={alertVisible}
                 message={alertMessage}
                 confirmText="OK"
-                onConfirm={() =>
-                    navigation.reset({
-                        index: 0, // index of MainTabs in the stack
-                        routes: [
-                            {
-                                name: Screen.MainTabs,
-                                state: {
-                                    index: 2,
-                                    routes: [
-                                        { name: "Home" },
-                                        { name: "Hub" },
-                                        { name: "More" },
-                                    ],
-                                },
-                            },
-                        ],
-                    })
-                }
+                onConfirm={handleCofirm}
             />
         </SafeAreaView>
     );

@@ -15,6 +15,8 @@ const BASE_URL = 'http://assonstech-001-site2.ktempurl.com/api'
 const BASE_Image_URL = 'http://assonstech-001-site2.ktempurl.com'
 
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
+const IS_DEFAULT_PASSWORD_KEY = 'IS_DEFAULT_PASSWORD'; // ✅ NEW KEY
+
 const TIMEOUT = 15000;
 
 export const getFullImageUrl = (relativePath) => {
@@ -120,6 +122,21 @@ const removeAccessToken = async () => {
   delete apiClient.defaults.headers.common.Authorization;
 };
 
+const setIsDefaultPassword = async (value) => {
+  await AsyncStorage.setItem(IS_DEFAULT_PASSWORD_KEY, value ? "true" : "false");
+};
+
+// ✅ Retrieve as a boolean
+const getIsDefaultPassword = async () => {
+  const val = await AsyncStorage.getItem(IS_DEFAULT_PASSWORD_KEY);
+  return val === 'true';
+};
+
+// ✅ Remove it (optional)
+const removeIsDefaultPassword = async () => {
+  await AsyncStorage.removeItem(IS_DEFAULT_PASSWORD_KEY);
+};
+
 export default {
   apiClient,
   get,
@@ -129,4 +146,7 @@ export default {
   upload,
   setAccessToken,
   removeAccessToken,
+  setIsDefaultPassword,
+  removeIsDefaultPassword,
+  getIsDefaultPassword,
 };

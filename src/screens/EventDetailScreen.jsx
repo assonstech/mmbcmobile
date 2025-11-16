@@ -53,6 +53,20 @@ const EventDetailScreen = ({ navigation, route }) => {
         ).start();
     };
 
+    // Determine if event date is today or in the past
+    const isEventPastOrToday = () => {
+        if (!event?.eventDate) return true; // hide if no date
+        const eventDate = new Date(event.eventDate);
+        const today = new Date();
+
+        // Normalize both dates to remove time
+        eventDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        return eventDate <= today; // true if event is today or before
+    };
+
+
     const formatTimeTo12Hour = (timeString) => {
         if (!timeString) return "";
         const [hour, minute] = timeString.split(":").map(Number);
@@ -205,17 +219,19 @@ const EventDetailScreen = ({ navigation, route }) => {
                 </View>
             </ScrollView>
 
-            <View style={styles.bottomButtonContainer}>
-                <TouchableOpacity
-                    style={[styles.bottomButton, { backgroundColor: isRegistered ? colors.cancelButton || "#E53935" : colors.button }]}
-                    onPress={handleButtonPress}
-                    disabled={disabled || cancelling}
-                >
-                    <Text style={[styles.bottomButtonText, { color: isRegistered ? "#fff" : colors.text }]}>
-                        {isRegistered ? "Cancel Registration" : "Register Now"}
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            {!isEventPastOrToday() && (
+                <View style={styles.bottomButtonContainer}>
+                    <TouchableOpacity
+                        style={[styles.bottomButton, { backgroundColor: isRegistered ? colors.cancelButton || "#E53935" : colors.button }]}
+                        onPress={handleButtonPress}
+                        disabled={disabled || cancelling}
+                    >
+                        <Text style={[styles.bottomButtonText, { color: isRegistered ? "#fff" : colors.text }]}>
+                            {isRegistered ? "Cancel Registration" : "Register Now"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Full-screen Overlay Loading */}
             {cancelling && (

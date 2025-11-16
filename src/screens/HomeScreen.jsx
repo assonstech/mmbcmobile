@@ -9,7 +9,8 @@ import {
     Platform,
     Image,
     FlatList,
-    PanResponder
+    PanResponder,
+    Alert
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,7 +21,7 @@ import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import EventCard from "../components/EventCard";
 import { fetchAllEvents } from "../controllers/EventController";
-import { getFullImageUrl } from "../common/HttpSerivce";
+import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
 import { fetchMemberInfo } from "../controllers/MemberController";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import Screen from "../utils/Screen";
@@ -43,6 +44,8 @@ const HomeScreen = ({ navigation }) => {
     const [memberInfo, setMemberInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isDialogShown, setIsDialogShown] = useState(false);
+
 
     const lastTranslateY = useRef(containerOffset);
     const chips = ["All", "In-person", "Online", "Registered"];
@@ -130,6 +133,34 @@ const HomeScreen = ({ navigation }) => {
             console.log("Error fetching events:", err);
         }
     };
+
+    useEffect(() => {
+        const checkDefaultPassword = async () => {
+            try {
+                const isDefaultPassword = await HttpSerivce.getIsDefaultPassword();
+                console.log("isDefalpawwo",isDefaultPassword)
+                if (isDefaultPassword && !isDialogShown) {
+                    setIsDialogShown(true); // ✅ Prevent future dialogs
+                    Alert.alert(
+                        "Security Alert",
+                        "You are using a default password. Please change it for your account’s security.",
+                        [
+                            {
+                                text: "Change Now",
+                                onPress: () => navigation.navigate(Screen.ChangePassword),
+                            },
+                            { text: "Later", style: "cancel" },
+                        ]
+                    );
+                }
+            } catch (err) {
+                console.error("Error checking default password:", err);
+            }
+        };
+
+        checkDefaultPassword();
+    }, []); // 👈 runs only once
+
 
     // useEffect(() => {
     //     const fetchData = async () => {

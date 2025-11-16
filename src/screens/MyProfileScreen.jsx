@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Image,
     Platform,
@@ -7,14 +7,22 @@ import {
     View,
     ScrollView,
     TouchableOpacity,
+    PermissionsAndroid,
+    Animated,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import { getFullImageUrl } from "../common/HttpSerivce";
-import { getMemberTypes } from "../controllers/MemberController";
+import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
+import { changeProfileImage, getMemberTypes, updateCompanyOrIndividualImage } from "../controllers/MemberController";
 import ImageViewing from "react-native-image-viewing";
+import CustomBottomSheet from "../components/CustomBottomSheet"
+import ImagePicker from 'react-native-image-crop-picker';
+import CustomAlertModal from "../components/CustomAlertModal";
+import Screen from "../utils/Screen";
+
 
 
 const isDarkMode = true;
@@ -53,6 +61,145 @@ const MyProfileScreen = ({ navigation, route }) => {
     const [memberTypeText, setMemberTypeText] = useState("");
     const [loading, setLoading] = useState(true);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+    const [imageBottomSheetVisible, setImageBottomSheetVisible] = useState(false);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
+    const overlayOpacity = useRef(new Animated.Value(0)).current;
+    const [uploading, setUploading] = useState(false);
+    const [alertAction, setAlertAction] = useState(() => () => setAlertVisible(false));
+
+    const fadeInOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const fadeOutOverlay = () => {
+        Animated.timing(overlayOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+
+
+    const requestAndroidPermissions = async () => {
+        if (Platform.OS === "android") {
+            try {
+                const granted = await PermissionsAndroid.requestMultiple([
+                    PermissionsAndroid.PERMISSIONS.CAMERA,
+                    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE, // for Android < 13
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES, // Android 13+
+                ]);
+
+                const allGranted = Object.values(granted).every(
+                    (status) => status === PermissionsAndroid.RESULTS.GRANTED
+                );
+
+                if (!allGranted) {
+                    console.log("Camera or Gallery permission denied");
+                    return false;
+                }
+
+                return true;
+            } catch (err) {
+                console.warn(err);
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleChooseImage = async (type) => {
+        const hasPermission = await requestAndroidPermissions();
+        if (!hasPermission) return;
+
+        try {
+            let image;
+            if (type === "camera") {
+                image = await ImagePicker.openCamera({
+                    width: 300,
+                    height: 300,
+                    cropping: true,
+                    cropperCircleOverlay: true,
+                    compressImageQuality: 0.8,
+                });
+            } else {
+                image = await ImagePicker.openPicker({
+                    width: 300,
+                    height: 300,
+                    cropping: true,
+                    cropperCircleOverlay: true,
+                    compressImageQuality: 0.8,
+                });
+            }
+
+            if (!image?.path) return; // User cancelled or invalid
+
+            setUploading(true);
+            setImageBottomSheetVisible(false)
+            fadeInOverlay();
+
+            const formData = new FormData();
+            formData.append("profileImage", {
+                uri: Platform.OS === "ios" ? image.path.replace("file://", "") : image.path,
+                type: image.mime,
+                name: image.filename || `upload_${Date.now()}.jpg`,
+            });
+
+            const res = await HttpSerivce.post("/member/single-upload/profileImage", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            if (res?.profileImage) {
+                await updateCompanyOrIndividualImage(res.profileImage);
+
+                setAlertMessage("Profile image updated successfully!");
+                setAlertVisible(true);
+
+                setAlertAction(() => () => {
+                    setAlertVisible(false);
+                    navigation.reset({
+                        index: 0,
+                        routes: [
+                            {
+                                name: Screen.MainTabs,
+                                state: {
+                                    index: 2,
+                                    routes: [
+                                        { name: "Home" },
+                                        { name: "Hub" },
+                                        { name: "More" },
+                                    ],
+                                },
+                            },
+                        ],
+                    });
+                });
+            } else {
+                setAlertMessage("Failed to upload image.");
+                setAlertVisible(true);
+                setAlertAction(() => () => setAlertVisible(false));
+            }
+
+        } catch (err) {
+            // Only show alert if it's not a user cancel
+            if (err?.message && err.message.toLowerCase().includes("cancel")) {
+                console.log("User cancelled image picker");
+            } else {
+                console.log("Image picking or upload error:", err);
+                setAlertMessage("An error occurred while uploading the image.");
+                setAlertVisible(true);
+                setAlertAction(() => () => setAlertVisible(false));
+            }
+        } finally {
+            fadeOutOverlay();
+            setUploading(false);
+        }
+    };
+
 
     useEffect(() => {
         const fetchMemberTypes = async () => {
@@ -90,6 +237,9 @@ const MyProfileScreen = ({ navigation, route }) => {
 
 
     const infoFields = [
+        { title: "Name", value: memberInfo.representiveName },
+        { title: "Email", value: memberInfo.email },
+        { title: "Phone Number", value: memberInfo.telephone },
         { title: "Member Code", value: memberInfo.memberCode },
         { title: "Member Position", value: memberInfo.representivePosition },
         { title: "Member NRC", value: memberInfo.memberNRC },
@@ -115,16 +265,8 @@ const MyProfileScreen = ({ navigation, route }) => {
     ];
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Background Logo */}
-            <View style={styles.logoContainer}>
-                <Image
-                    source={require("../../src/assets/images/profileBg.png")}
-                    style={styles.backgroundLogo}
-                />
-            </View>
-
-            {/* Back Button */}
+        <SafeAreaView style={[styles.container]}>
+            {/* Header with Back Button */}
             <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
@@ -136,12 +278,12 @@ const MyProfileScreen = ({ navigation, route }) => {
                 />
             </TouchableOpacity>
 
-            {/* Main Card Section */}
-            <View style={styles.cardContainer}>
+            {/* Profile Image Row */}
+            <View style={styles.profileRow}>
                 {/* Profile Image */}
-                <TouchableOpacity style={styles.profileWrapper} onPress={() => setIsImageViewerVisible(true)}>
+                <TouchableOpacity onPress={() => setIsImageViewerVisible(true)}>
                     {loading ? (
-                        <SkeletonBox width="100%" height="100%" borderRadius={65.5} />
+                        <SkeletonBox width={130} height={130} borderRadius={65} />
                     ) : (
                         <Image
                             source={
@@ -154,125 +296,204 @@ const MyProfileScreen = ({ navigation, route }) => {
                     )}
                 </TouchableOpacity>
 
-                {/* User Info */}
-                <View style={styles.infoContainer}>
-                    {loading ? (
-                        <>
-                            <SkeletonBox width={180} height={24} />
-                            <SkeletonBox width={220} height={16} />
-                            <SkeletonBox width={140} height={16} />
-                        </>
-                    ) : (
-                        <>
-                            <Text style={styles.nameText}>{memberInfo?.representiveName || "No Name"}</Text>
-                            <Text style={styles.emailText}>{memberInfo?.email || "No Email"}</Text>
-                            <Text style={styles.phoneText}>{memberInfo?.phone || "No Phone"}</Text>
-                        </>
-                    )}
-                </View>
-
-                {/* Scrollable Info Cards */}
-                <ScrollView
-                    style={styles.scrollView}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                >
-                    {infoFields.map((item, index) => (
-                        <InfoCard key={index} title={item.title} value={item.value} loading={loading} />
-                    ))}
-                </ScrollView>
+                {/* Change Photo */}
+                {!loading && (
+                    <TouchableOpacity onPress={() => setImageBottomSheetVisible(true)}>
+                        <Text style={styles.changePhotoText}>Change Photo</Text>
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Scrollable Info Cards */}
+            <ScrollView
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 16 }}
+            >
+                {infoFields.map((item, index) => (
+                    <InfoCard key={index} title={item.title} value={item.value} loading={loading} />
+                ))}
+            </ScrollView>
+
+            {/* Image Viewer */}
             <ImageViewing
                 images={[{ uri: getFullImageUrl(memberInfo.companyOrIndividualImage) }]}
                 imageIndex={0}
                 visible={isImageViewerVisible}
                 onRequestClose={() => setIsImageViewerVisible(false)}
             />
+
+            {/* Bottom Sheet */}
+            <CustomBottomSheet
+                visible={imageBottomSheetVisible}
+                onClose={() => setImageBottomSheetVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.sheetButton}
+                    onPress={() => handleChooseImage("camera")}
+                >
+                    <Text style={styles.sheetButtonText}>Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.sheetButton}
+                    onPress={() => handleChooseImage("gallery")}
+                >
+                    <Text style={styles.sheetButtonText}>Choose from Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.sheetButton, { backgroundColor: "#ccc" }]}
+                    onPress={() => setImageBottomSheetVisible(false)}
+                >
+                    <Text style={styles.sheetButtonText}>Cancel</Text>
+                </TouchableOpacity>
+            </CustomBottomSheet>
+
+            {uploading && (
+                <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+                    <View style={styles.loaderBox}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={styles.loaderText}>Changing Profile Image...</Text>
+                    </View>
+                </Animated.View>
+            )}
+
+            <CustomAlertModal
+                visible={alertVisible}
+                message={alertMessage}
+                confirmText="OK"
+                onConfirm={alertAction}
+            />
+
+
         </SafeAreaView>
-    );
+    )
 };
 
 export default MyProfileScreen;
 
 /* ------------------------------- Styles ------------------------------- */
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    logoContainer: { alignItems: "center" },
-    backgroundLogo: { width: 270, height: 270, resizeMode: "contain" },
-
+    container: { flex: 1, backgroundColor: "#fff" },
     backButton: {
-        position: "absolute",
-        top: Platform.OS === "android" ? 40 : 60,
-        left: 16,
-        zIndex: 10,
-        padding: 8,
-        borderRadius: 20,
-        backgroundColor: "white",
+        width: 40,           // fixed width
+        height: 40,          // fixed height
+        borderRadius: 20,    // half of width/height for circle
+        backgroundColor: "#fff",
         justifyContent: "center",
+        marginHorizontal: 16,
+        marginTop: 30,
+        alignItems: "center", // center the icon
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    backIcon: {
+        width: 20,
+        height: 20,
+        tintColor: "#000",
+        resizeMode: "contain",
+    },
+    profileRow: {
+        flexDirection: "row",
         alignItems: "center",
+        marginTop: Platform.OS === "android" ? 20 : 30,
+        marginHorizontal: 20,
+        gap: 16, // space between image and button
     },
-    backIcon: { width: 20, height: 20, resizeMode: "contain", tintColor: "#000" },
-
-    cardContainer: {
-        ...StyleSheet.absoluteFillObject,
-        flex: 1,
-        marginTop: Platform.OS === "android" ? "19%" : "23%",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        backgroundColor: "white",
-        paddingTop: 80,
-        zIndex: 1,
+    profileImage: {
+        width: 130,
+        height: 130,
+        borderRadius: 65,
     },
-    profileWrapper: {
-        position: "absolute",
-        top: -65,
-        alignSelf: "center",
-        width: 131,
-        height: 131,
-        borderRadius: 65.5,
-        borderWidth: 4,
-        borderColor: "white",
-        overflow: "hidden",
-        backgroundColor: colors.bottomTabbarLabelColor,
-        shadowColor: colors.text,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        elevation: 6,
+    changePhotoText: {
+        color: "#3B82F6",
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        textDecorationLine: 'underline'
     },
-    profileImage: { width: "100%", height: "100%", resizeMode: "cover", borderRadius: 65.5 },
-
-    infoContainer: { alignItems: "center", marginBottom: 10 },
+    infoContainer: { alignItems: "center", marginVertical: 16 },
     nameText: {
         fontFamily: FontFamily.SemiBold,
         fontSize: 24,
-        color: colors.text,
         fontWeight: "600",
+        color: colors.text,
         lineHeight: 32,
     },
-    emailText: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.loginAccountColor, marginTop: 4 },
-    phoneText: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.loginAccountColor, marginTop: 2 },
+    emailText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        color: colors.loginAccountColor,
+        marginTop: 4,
+    },
+    phoneText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        color: colors.loginAccountColor,
+        marginTop: 2,
+    },
 
-    scrollView: { flex: 1, marginTop: 16 },
+    scrollView: { flex: 1, marginTop: 20, paddingTop: 20 },
     infoCard: {
         padding: 16,
         marginHorizontal: 16,
         marginBottom: 12,
         backgroundColor: colors.itemSeparateColor,
         borderRadius: 24,
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 2,
     },
     label: {
         fontFamily: FontFamily.Medium,
         fontSize: 12,
-        fontWeight: '500',
-        lineHeight: 18,
         color: colors.loginAccountColor,
+        marginBottom: 6,
     },
     value: {
         fontFamily: FontFamily.Medium,
         fontSize: 16,
-        fontWeight: '500',
-        lineHeight: 24,
         color: colors.text,
+    },
+
+    sheetButton: {
+        paddingVertical: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        backgroundColor: colors.primary,
+        marginVertical: 6,
+    },
+    sheetButtonText: {
+        color: "#fff",
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+    },
+    overlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+    loaderBox: {
+        backgroundColor: "rgba(0,0,0,0.7)",
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderRadius: 14,
+        alignItems: "center",
+    },
+    loaderText: {
+        color: "#fff",
+        fontSize: 16,
+        marginTop: 10,
+        fontWeight: "600",
     },
 });

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import EndoCalendar from "../assets/icons/endo-calendar.png";
 import EnfoProfile from "../assets/icons/endo-profile-circle.png";
@@ -16,6 +17,7 @@ import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import { getFullImageUrl } from "../common/HttpSerivce";
+import QRCode from "react-native-qrcode-svg";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -24,6 +26,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
   const [flipped, setFlipped] = useState(false);
   const animatedValue = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
+
 
   const frontInterpolate = animatedValue.interpolate({
     inputRange: [0, 180],
@@ -161,6 +164,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
               </View>
             ))}
           </View>
+
         </Animated.View>
 
         {/* Back Side */}
@@ -178,6 +182,30 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
           ]}
         >
           <Image source={backImage} style={styles.image} />
+          <View style={styles.backOverlay}>
+            {/* QR Code Center */}
+            {info?.memberCode && (
+              <QRCode
+                value={info.memberCode}
+                size={120}
+                color={colors.text}
+                backgroundColor="transparent"
+              />
+            )}
+
+            {/* Dates at bottom */}
+            <View style={styles.startDateContainer}>
+              <Text style={styles.dateText}>
+                Start: {info?.startDate ? new Date(info.startDate).toLocaleDateString() : "-"}
+              </Text>
+            </View>
+            <View style={styles.backDatesContainer}>
+
+              <Text style={styles.dateText}>
+                End: {info?.endDate ? new Date(info.endDate).toLocaleDateString() : "-"}
+              </Text>
+            </View>
+          </View>
         </Animated.View>
       </View>
     </TouchableOpacity>
@@ -276,6 +304,35 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
+
+  backOverlay: {
+    flex: 1,
+    position: "absolute",
+    alignSelf: 'center',
+    top: 33
+  },
+
+  /* Add these styles for the back dates */
+  startDateContainer: {
+    position: "absolute",
+    bottom: -30,
+    left: Platform.OS === 'android' ? -99 : -95,
+  },
+
+  backDatesContainer: {
+    position: "absolute",
+    bottom: -30,
+    right: Platform.OS === 'android' ? -99 : -95,
+  },
+
+  dateText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.text,
+    fontFamily: FontFamily.Medium,
+  },
+
+
 });
 
 export default FlipCard;

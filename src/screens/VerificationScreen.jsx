@@ -16,12 +16,13 @@ import { OtpInput } from "react-native-otp-entry";
 import Screen from "../utils/Screen";
 import { sendOTP, verifyOTP } from "../controllers/OTPController";
 import CustomToast from "../components/CustomToast";
+import HttpSerivce from "../common/HttpSerivce";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const VerificationScreen = ({ navigation, route }) => {
-  const { email } = route.params || {};
+  const { email, isFromLogin, token, isDefaultPassword } = route.params || {};
   const [otp, setOtp] = useState("");
   const [isValidOtp, setIsValidOtp] = useState(false);
   const [timer, setTimer] = useState(60);
@@ -68,8 +69,19 @@ const VerificationScreen = ({ navigation, route }) => {
       console.log("respone", response)
 
       if (response?.success) {
+
+        if (token) {
+          await HttpSerivce.setAccessToken(token);
+          await HttpSerivce.setIsDefaultPassword(isDefaultPassword); // or your value
+          navigation.reset({
+            index: 0,
+            routes: [{ name: Screen.MainTabs }],
+          });
+          return;
+        }
         navigation.navigate(Screen.ResetPasswordScreen, {
-          email: email
+          email: email,
+          isFromLogin: isFromLogin
         });
       } else {
         showToast("Invalid OTP code" || "Failed to resend OTP ❌", "error");

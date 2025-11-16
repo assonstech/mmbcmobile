@@ -19,7 +19,8 @@ import DefaultTextInput from "../components/DefaultTextInput";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
 import CustomAlertModal from "../components/CustomAlertModal";
-import { changePassword } from "../controllers/MemberController";
+import { changePassword, updateIsDefaultPassword } from "../controllers/MemberController";
+import HttpSerivce from "../common/HttpSerivce";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -59,27 +60,47 @@ const ChangePasswordScreen = ({ navigation }) => {
 
     const handleChangePassword = async () => {
         if (!isValid) return;
+
         const postBody = {
             oldPassword: currentPassword,
-            newPassword: confirmPassword
-        }
+            newPassword: confirmPassword,
+        };
+
         try {
             setLoading(true);
             fadeInOverlay();
-            console.log("Postbody", postBody)
-            const response = await changePassword(postBody)
-            console.log(response)
+
+            console.log("🔹 Sending password change request:", postBody);
+            const response = await changePassword(postBody);
+            console.log("🔹 Change password response:", response);
+
             if (response?.success) {
-                setAlertMessage("Password Reset Successfully");
+                // Check local isDefaultPassword before calling API
+                const isDefault = await HttpSerivce.getIsDefaultPassword(); // assume you have a getter
+                if (isDefault) {
+                    const updateResponse = await updateIsDefaultPassword(false);
+                    console.log("🔹 Update isDefaultPassword response:", updateResponse);
+                }
+
+                // Always update locally
+                await HttpSerivce.setIsDefaultPassword(false);
+
+                setAlertMessage("Password changed successfully");
+                setAlertVisible(true);
+            } else {
+                setAlertMessage(response?.message || "Failed to change password");
                 setAlertVisible(true);
             }
         } catch (err) {
-            console.log(err)
+            console.error("❌ Error changing password:", err);
+            setAlertMessage("Something went wrong. Please try again later.");
+            setAlertVisible(true);
         } finally {
-            fadeOutOverlay()
-            setLoading(false)
+            fadeOutOverlay();
+            setLoading(false);
         }
     };
+
 
     return (
         <SafeAreaView style={styles.container}>

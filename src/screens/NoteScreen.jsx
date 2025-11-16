@@ -274,12 +274,14 @@ const styles = StyleSheet.create({
         height: "70%",
         borderRadius: 20,
         overflow: "hidden",
+        borderWidth:1,
+        borderColor:colors.loginAccountColor
     },
-    horizontalImage: { width: "100%", height: "100%", resizeMode: "cover" },
+    horizontalImage: { width: "100%", height: "100%", resizeMode: "contain" },
 
     overlay: {
         position: "absolute",
-        bottom: 0,
+        bottom: -1,
         left: 0,
         right: 0,
         height: "40%",

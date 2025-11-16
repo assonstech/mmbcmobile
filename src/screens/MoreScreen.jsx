@@ -66,6 +66,7 @@ const MoreScreen = ({ navigation }) => {
     const handleLogout = async () => {
         try {
             await HttpSerivce.removeAccessToken("token");
+            await HttpSerivce.removeIsDefaultPassword();
             navigation.reset({
                 index: 0,
                 routes: [{ name: Screen.Login }],
@@ -111,6 +112,9 @@ const MoreScreen = ({ navigation }) => {
                 break;
             case "Change Password":
                 navigation.navigate(Screen.ChangePassword);
+                break;
+            case "Organization chart":
+                navigation.navigate(Screen.OrganizationChart);
                 break;
             default:
                 console.log("No navigation defined for:", label);

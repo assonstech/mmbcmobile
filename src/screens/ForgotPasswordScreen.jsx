@@ -19,7 +19,8 @@ import { sendOTP } from "../controllers/OTPController";
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
-const ForgotPasswordScreen = ({ navigation }) => {
+const ForgotPasswordScreen = ({ navigation, route }) => {
+  const { isFromLogin } = route.params || false
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +66,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
       const response = await sendOTP(email);
 
       if (response?.success) {
-        navigation.navigate(Screen.VerificationScreen, { email });
+        navigation.navigate(Screen.VerificationScreen, { email,isFromLogin });
       } else {
         setAlertMessage(response?.message || "Failed to send OTP. Please try again.");
         setAlertVisible(true);

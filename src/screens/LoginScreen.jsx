@@ -9,12 +9,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
-  Alert,
   BackHandler,
   ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { KeyboardAvoidingScrollView } from 'react-native-keyboard-avoiding-scroll-view';
 import DarkColors from '../colors/dark';
 import LightColors from '../colors/light';
 import DefaultTextInput from '../components/DefaultTextInput';
@@ -24,6 +25,7 @@ import Screen from '../utils/Screen';
 import { login } from '../controllers/LoginController';
 import { exitApp } from '@logicwind/react-native-exit-app';
 import CustomAlertModal from '../components/CustomAlertModal';
+import { sendOTP } from '../controllers/OTPController';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const isDarkMode = true;
@@ -35,66 +37,35 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const logoPosition = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(1)).current;
   const formPosition = useRef(new Animated.Value(50)).current;
   const formOpacity = useRef(new Animated.Value(0)).current;
   const secondLogoOpacity = useRef(new Animated.Value(0)).current;
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
 
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  const fadeInOverlay = () => {
-    Animated.timing(overlayOpacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
+  const fadeInOverlay = () => Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+  const fadeOutOverlay = () => Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
 
-  const fadeOutOverlay = () => {
-    Animated.timing(overlayOpacity, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-
-
+  // Animate logo and form on mount
   useEffect(() => {
     const timeout = setTimeout(() => {
       Animated.parallel([
-        Animated.spring(logoPosition, {
-          toValue: -SCREEN_HEIGHT / 3.2,
-          useNativeDriver: true,
-        }),
-        Animated.spring(logoScale, {
-          toValue: 0.65,
-          useNativeDriver: true,
-        }),
-        Animated.timing(formPosition, {
-          toValue: 70,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(formOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(secondLogoOpacity, {
-          toValue: 0.1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
+        Animated.spring(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, useNativeDriver: true }),
+        Animated.spring(logoScale, { toValue: 0.65, useNativeDriver: true }),
+        Animated.timing(formPosition, { toValue: 70, duration: 500, useNativeDriver: true }),
+        Animated.timing(formOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(secondLogoOpacity, { toValue: 0.5, duration: 500, useNativeDriver: true }),
       ]).start();
     }, 700);
     return () => clearTimeout(timeout);
   }, []);
 
+  // Handle back button
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -106,122 +77,180 @@ export default function LoginScreen() {
     }, [])
   );
 
-  const handleLogin = async () => {
+  // Keyboard event listeners
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', () => {
+      Animated.parallel([
+        Animated.timing(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, duration: 300, useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 0.5, duration: 300, useNativeDriver: true }),
+      ]).start();
+    });
+    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.parallel([
+        Animated.timing(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, duration: 300, useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 0.65, duration: 300, useNativeDriver: true }),
+      ]).start();
+    });
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+
+  const handleLogin = useCallback(async () => {
     Keyboard.dismiss();
     setLoading(true);
     fadeInOverlay();
+
     try {
       const res = await login(email, password);
-      if (res.success) {
-        navigation.replace(Screen.MainTabs);
+
+      if (!res.success) {
+        setAlertMessage("Invalid email or password");
+        setAlertVisible(true);
+        return;
+      }
+
+      const { status, startDate, endDate } = res.data || {};
+      const now = new Date();
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (status !== "Approved") {
+        setAlertMessage("Your account is not approved yet.");
+        setAlertVisible(true);
+        return;
+      }
+
+      if (!(now >= start && now <= end)) {
+        setAlertMessage("Your account is currently inactive. Please contact support.");
+        setAlertVisible(true);
+        return;
+      }
+
+      const token = res.data?.token;
+      const isDefaultPassword = res.data?.isDefaultPassword;
+
+      const response = await sendOTP(email);
+      if (response?.success) {
+        navigation.navigate(Screen.VerificationScreen, { email, token: token, isDefaultPassword });
       } else {
-        setAlertMessage("Invalid email or Password");
+        setAlertMessage(response?.message || "Failed to send OTP. Please check your email");
         setAlertVisible(true);
       }
     } catch (err) {
-      console.log(err)
+      console.log("Login error:", err);
+      setAlertMessage("Something went wrong. Please try again.");
+      setAlertVisible(true);
     } finally {
-      fadeOutOverlay
+      fadeOutOverlay();
       setLoading(false);
     }
-
-
-  };
+  }, [email, password, navigation]);
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        {/* Background logo overlay */}
-        <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
-          <Image
-            source={require('../../src/assets/images/appLogo.png')}
-            style={{ width: 361, height: 361, resizeMode: 'contain', opacity: 0.1 }}
-          />
-        </Animated.View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {/* Background logo overlay */}
+          <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
+            <Image
+              source={require('../../src/assets/images/appLogo.png')}
+              style={{ width: 361, height: 361, resizeMode: 'contain', opacity: 0.1 }}
+            />
+          </Animated.View>
 
-        {/* Animated main logo behind the form */}
-        <Animated.View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: 'center',
-            alignItems: 'center',
-            transform: [{ translateY: logoPosition }, { scale: logoScale }],
-            zIndex: 0,
-          }}
-        >
-          <Image
-            source={require('../../src/assets/images/appLogo.png')}
-            style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
-          />
-        </Animated.View>
-
-        {/* Form container with scroll only on focused input */}
-        <KeyboardAvoidingScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 50 }}
-          enableOnAndroid
-          keyboardOpeningTime={0}
-          keyboardShouldPersistTaps="handled"
-        >
+          {/* Animated main logo */}
           <Animated.View
-            style={[
-              styles.formContainer,
-              { opacity: formOpacity, transform: [{ translateY: formPosition }] },
-            ]}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              transform: [{ translateY: logoPosition }, { scale: logoScale }],
+              zIndex: 0,
+            }}
           >
-            <View style={{ gap: 12, marginBottom: 20 }}>
-              <Text style={styles.title}>Login account</Text>
-              <Text style={styles.body}>
-                If you don't have an account,{' '}
-                <Text style={{ color: colors.signUpTextColor }}>Sign up</Text>
-              </Text>
-            </View>
-
-            <DefaultTextInput
-              label="Email Address"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
+            <Image
+              source={require('../../src/assets/images/appLogo.png')}
+              style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
             />
-            <DefaultTextInput
-              label="Password"
-              placeholder="Enter your password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+          </Animated.View>
 
-            <View>
-              <DefaultButton
-                title={'Login'}
-                onPress={handleLogin}
-                disabled={loading}
+          {/* Scrollable form */}
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 50 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Animated.View
+              style={[styles.formContainer, { opacity: formOpacity, transform: [{ translateY: formPosition }] }]}
+            >
+              <View style={{ marginBottom: 20 }}>
+                <Text style={styles.title}>Login account</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4, marginTop: 4 }}>
+                  <Text style={styles.body}>If you don't have an account, </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate(Screen.SignUp)}>
+                    <Text style={{ color: colors.signUpTextColor }}>Sign up</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <DefaultTextInput
+                label="Email Address"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
               />
-              <Text style={[styles.body, { alignSelf: 'center', marginVertical: 8 }]}>
-                Forgot your password?
-              </Text>
-            </View>
-          </Animated.View>
-        </KeyboardAvoidingScrollView>
-        <CustomAlertModal
-          visible={alertVisible}
-          message={alertMessage}
-          confirmText="OK"
-          onConfirm={() => setAlertVisible(false)}
-        />
-        {loading && (
-          <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-            <View style={styles.loaderBox}>
-              <ActivityIndicator size="large" color="#fff" />
-              <Text style={styles.loaderText}>Logging In...</Text>
-            </View>
-          </Animated.View>
-        )}
-      </View>
-    </TouchableWithoutFeedback>
+              <DefaultTextInput
+                label="Password"
+                placeholder="Enter your password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+
+              <View>
+                <DefaultButton
+                  title="Login"
+                  onPress={handleLogin}
+                  disabled={loading}
+                />
+                <TouchableOpacity onPress={() => navigation.navigate(Screen.ForgotPassword, { isFromLogin: true })}>
+                  <Text style={[styles.body, { alignSelf: 'center', marginVertical: 8 }]}>
+                    Forgot your password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </ScrollView>
+
+          {/* Alert modal */}
+          <CustomAlertModal
+            visible={alertVisible}
+            message={alertMessage}
+            confirmText="OK"
+            onConfirm={() => setAlertVisible(false)}
+          />
+
+          {/* Loading overlay */}
+          {loading && (
+            <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+              <View style={styles.loaderBox}>
+                <ActivityIndicator size="large" color="#fff" />
+                <Text style={styles.loaderText}>Logging In...</Text>
+              </View>
+            </Animated.View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -272,6 +301,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   loaderBox: {
     backgroundColor: "rgba(0,0,0,0.7)",

@@ -18,11 +18,7 @@ export async function login(email, password) {
     console.log('Login API response:', res);
 
     if (res.success) {
-      const token = res.data?.token;
-      if (token) {
-        await http.setAccessToken(token);
-      }
-      return { success: true, message: res.message, data: res.data };
+      return res
     } else {
       return { success: false, message: res.message || 'Login failed', data: null };
     }
