@@ -33,6 +33,15 @@ const apiClient = axios.create({
   },
 });
 
+export const formattedPrice = (amount) => new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+}).format(amount).replace('$','');
+
+
+
 // Attach access token to requests
 apiClient.interceptors.request.use(
   async (config) => {

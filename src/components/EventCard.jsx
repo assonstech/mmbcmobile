@@ -3,6 +3,7 @@ import { TouchableOpacity, View, Text, Image, StyleSheet, ActivityIndicator } fr
 import { FontFamily } from "../styles/fontStyle";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
+import { formattedPrice } from "../common/HttpSerivce";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -39,7 +40,7 @@ const EventCard = ({ item, onPress }) => {
 
                 {/* Price Top-Right */}
                 <View style={styles.topRight}>
-                    <Text style={styles.priceText}>{item.price} MMK</Text>
+                    <Text style={styles.priceText}>{formattedPrice(item.price)} MMK</Text>
                 </View>
 
                 {/* Description & Location Bottom-Left */}
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
         width: "100%",
         height: "100%",
         borderRadius: 20,
-        resizeMode: "cover",
+        resizeMode: "stretch",
     },
     topRight: {
         position: "absolute",

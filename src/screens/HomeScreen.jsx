@@ -349,7 +349,7 @@ const HomeScreen = ({ navigation }) => {
                         data={filteredEvents}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={renderEventItem}
-                        contentContainerStyle={{ paddingBottom: 110, paddingHorizontal: 16 }}
+                        contentContainerStyle={{ paddingBottom: isExpanded ? 110 : Platform.OS === 'android' ? 360 : 400, paddingHorizontal: 16 }}
                         ItemSeparatorComponent={() => <View style={{ height: 25 }} />}
                         refreshing={refreshing}
                         onRefresh={onRefresh}
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
         borderRadius: 9999,
         borderColor: colors.textInputBorderColor,
     },
-    filterIcon: { width: 18, height: 18, tintColor: colors.text, marginRight: 8 },
+    filterIcon: { width: 16, height: 16, tintColor: colors.text, marginRight: 8 },
     filterText: {
         fontFamily: FontFamily.Medium,
         fontSize: 16,

@@ -24,8 +24,9 @@ import EndoCalendar from "../assets/icons/endo-calendar.png";
 import EndoClock from "../assets/icons/endo-clock.png";
 
 import { fetchEventDetail, unRegisterEvent } from "../controllers/EventController";
-import { getFullImageUrl } from "../common/HttpSerivce";
+import { formattedPrice, getFullImageUrl } from "../common/HttpSerivce";
 import Screen from "../utils/Screen";
+import ImageViewing from "react-native-image-viewing";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -36,6 +37,9 @@ const EventDetailScreen = ({ navigation, route }) => {
     const [loading, setLoading] = useState(true);
     const [cancelling, setCancelling] = useState(false);
     const [disabled, setDisabled] = useState(false);
+    const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+    const [imageViewerImages, setImageViewerImages] = useState([]);
+
 
     const shimmerAnim = useRef(new Animated.Value(0)).current;
 
@@ -193,14 +197,21 @@ const EventDetailScreen = ({ navigation, route }) => {
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                <View style={styles.imageContainer}>
-                    <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="cover">
+                <TouchableOpacity style={styles.imageContainer}
+                    onPress={() => {
+                        if (event?.eventImage) {
+                            setImageViewerImages([{ uri: getFullImageUrl(event.eventImage) }]);
+                            setIsImageViewerVisible(true);
+                        }
+                    }}
+                >
+                    <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="stretch">
                         <View style={styles.overlay} />
                         <View style={styles.ruleContainer}>
                             <Text style={styles.ruleText}>{event.eventRule || "No rules provided"}</Text>
                         </View>
                     </ImageBackground>
-                </View>
+                </TouchableOpacity>
 
                 <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
                     <Text style={styles.title}>{event.eventTitle}</Text>
@@ -224,7 +235,7 @@ const EventDetailScreen = ({ navigation, route }) => {
                     </View>
 
                     <Text style={styles.priceText}>
-                        💰 {event.eventFee ? `${event.eventFee} Ks ` : "Free"}
+                        💰 {event.eventFee ? `${formattedPrice(event.eventFee)} Ks ` : "Free"}
                     </Text>
                 </View>
 
@@ -265,6 +276,13 @@ const EventDetailScreen = ({ navigation, route }) => {
                     <ActivityIndicator size="large" color="#fff" />
                 </View>
             )}
+            <ImageViewing
+                images={imageViewerImages} // Use the state array
+                imageIndex={0}
+                visible={isImageViewerVisible}
+                onRequestClose={() => setIsImageViewerVisible(false)}
+            />
+
         </SafeAreaView>
     );
 };
@@ -275,7 +293,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     imageContainer: { width: "100%", height: 221, overflow: "hidden" },
     image: { flex: 1, justifyContent: "flex-start" },
-    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.3)" },
+    overlay: { ...StyleSheet.absoluteFill },
     ruleContainer: { backgroundColor: colors.ruleBackgroundColor },
     ruleText: { textAlign: "center", fontFamily: FontFamily.Medium, fontWeight: "500", lineHeight: 20, color: "#fff", fontSize: 14, paddingVertical: 8 },
     card: { marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: colors.itemSeparateColor },
