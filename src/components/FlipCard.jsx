@@ -9,7 +9,7 @@ import {
   Easing,
   Platform,
 } from "react-native";
-import EndoCalendar from "../assets/icons/endo-calendar.png";
+import EndoCalendar from "../assets/icons/Vector.png";
 import EnfoProfile from "../assets/icons/endo-profile-circle.png";
 import EndoCard from "../assets/icons/endo-personalcard.png";
 import EndoGlobal from "../assets/icons/endo-global.png";
@@ -115,9 +115,9 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
   // 🟩 Actual card when loaded
   const overlayItems = [
     { icon: EnfoProfile, text: info?.representiveName },
-    { icon: EndoCalendar, text: info?.memberNRC },
+    { icon: EndoCard, text: info?.memberNRC },
     {
-      icon: EndoCard,
+      icon: EndoCalendar,
       text: info?.createdDate ? new Date(info.createdDate)
         .toDateString()
         .split(" ")

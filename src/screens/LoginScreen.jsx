@@ -152,7 +152,6 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -256,7 +255,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   secondLogoContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     marginTop: '15%',
     alignItems: 'center',
     zIndex: 0,

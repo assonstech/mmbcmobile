@@ -18,7 +18,8 @@ const Screen = {
   EventRegistrationAsScreen:'eventRegistrationAs',
   GuestScreen:'guestScreen',
   OrganizationChart:'organizationChart',
-  SignUp:'signup'
+  SignUp:'signup',
+  GuestDetail:'guestDetail'
 };
 
 export default Screen;

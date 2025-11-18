@@ -165,7 +165,9 @@ const MyProfileScreen = ({ navigation }) => {
                         loading ? (
                             <View style={styles.skeletonCard} />
                         ) : (
-                            <HorizontalProfileCard item={item} onPress={() => openImageViewer(item.image)} />
+                            <HorizontalProfileCard item={item} 
+                            // onPress={() => openImageViewer(item.image)} 
+                            />
                         )
                     }
                 />

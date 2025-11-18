@@ -86,13 +86,16 @@ const HubScreen = () => {
         <SafeAreaView style={{ flex: 1, paddingBottom: 80, backgroundColor: colors.bottomTabbarLabelColor }}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerText}>Knowledge Hub</Text>
+                <Text style={styles.headerText}>HR Working Group</Text>
                 <View style={styles.filterContainer}>
                     <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
-                        <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
+                        {!selectedDate && (
+                            <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
+
+                        )}
                         <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
                         {selectedDate && (
-                            <TouchableOpacity onPress={clearFilter} style={{ marginLeft: 8 }}>
+                            <TouchableOpacity onPress={clearFilter} style={{ marginLeft: 8 }} hitSlop={20}>
                                 <Image source={require("../assets/icons/close.png")} style={styles.cancelIcon} />
                             </TouchableOpacity>
                         )}
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
     headerText: { fontFamily: FontFamily.SemiBold, fontSize: 20, fontWeight: "600", lineHeight: 28, color: colors.text },
     filterContainer: { flexDirection: "row", alignItems: "center" },
     filterButton: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 9999, borderColor: colors.textInputBorderColor },
-    filterIcon: { width: 24, height: 24, tintColor: colors.text, marginRight: 8 },
+    filterIcon: { width: 18, height: 18, tintColor: colors.text, marginRight: 8 },
     cancelIcon: { width: 20, height: 20, tintColor: colors.text },
     filterText: { fontFamily: FontFamily.Medium, fontSize: 16, lineHeight: 24, color: colors.text },
     separator: { height: 8, backgroundColor: colors.itemSeparateColor },

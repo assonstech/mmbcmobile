@@ -9,6 +9,7 @@ import {
     ScrollView,
     ActivityIndicator,
     Switch,
+    KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
@@ -116,7 +117,7 @@ const GuestScreen = ({ navigation, route }) => {
             if (res.success) {
                 console.log("✅ Registration successful:", res);
                 if (onFinish) onFinish();
-                navigation.pop(1);
+                navigation.pop(2);
             } else {
                 console.log("❌ Registration failed:", res);
                 setError(res.message || "Failed to update event");
@@ -136,96 +137,102 @@ const GuestScreen = ({ navigation, route }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <HeaderWithActions
-                onBackPress={() => navigation.goBack()}
-                showNext={!loading}
-                buttonText={isUpdateMode ? "Update" : "Next"}
-                onNextPress={handleNextPress}
-            />
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+            <SafeAreaView style={styles.container}>
+                <HeaderWithActions
+                    onBackPress={() => navigation.goBack()}
+                    showNext={!loading}
+                    buttonText={isUpdateMode ? "Update" : "Next"}
+                    onNextPress={handleNextPress}
+                />
 
-            <Text style={styles.headerTitle}>
-                Register For <Text style={{ color: colors.text }}>Others</Text>
-            </Text>
-            <Text style={styles.bodyText}>
-                This registration is for{isMemberInclude && " you and"} other people. You’ll need to attend the event.
-            </Text>
+                <Text style={styles.headerTitle}>
+                    Register For <Text style={{ color: colors.text }}>Others</Text>
+                </Text>
+                <Text style={styles.bodyText}>
+                    This registration is for{isMemberInclude && " you and"} other people. You’ll need to attend the event.
+                </Text>
 
-            {/* Switch for including member */}
-            {isUpdateMode && (
-                <View style={styles.switchRow}>
-                    <Text style={styles.switchLabel}>Include myself in registration</Text>
-                    <Switch
-                        value={isMemberInclude}
-                        onValueChange={setIsMemberInclude}
-                        trackColor={{ false: "#ccc", true: colors.primary || "#007AFF" }}
-                        thumbColor={isMemberInclude ? "#fff" : "#f4f3f4"}
-                    />
-                </View>
-            )}
-
-
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                {guests.map((guest, index) => (
-                    <View style={styles.guestCard} key={index}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={styles.guestTitle}>Guest {index + 1}</Text>
-                            {index !== 0 && (
-                                <TouchableOpacity onPress={() => handleRemoveGuest(index)}>
-                                    <Text style={{ color: "red", fontWeight: "600" }}>Remove</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-
-                        <Text style={styles.label}>Name</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter name"
-                            value={guest.name}
-                            onChangeText={(text) => handleInputChange(index, "name", text)}
-                        />
-
-                        <Text style={styles.label}>Email Address</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter email"
-                            keyboardType="email-address"
-                            value={guest.email}
-                            onChangeText={(text) => handleInputChange(index, "email", text)}
-                        />
-
-                        <Text style={styles.label}>Phone</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter phone number"
-                            keyboardType="phone-pad"
-                            value={guest.phone}
-                            onChangeText={(text) => handleInputChange(index, "phone", text)}
+                {/* Switch for including member */}
+                {isUpdateMode && (
+                    <View style={styles.switchRow}>
+                        <Text style={styles.switchLabel}>Include myself in registration</Text>
+                        <Switch
+                            value={isMemberInclude}
+                            onValueChange={setIsMemberInclude}
+                            trackColor={{ false: "#ccc", true: colors.primary || "#007AFF" }}
+                            thumbColor={isMemberInclude ? "#fff" : "#f4f3f4"}
                         />
                     </View>
-                ))}
-                {guests.length < 3 && (
-                    <TouchableOpacity style={styles.button} onPress={handleAddGuest}>
-                        <Image
-                            source={require("../assets/icons/endo-add.png")}
-                            style={styles.buttonIcon}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.buttonText}>Add Guest</Text>
-                    </TouchableOpacity>
                 )}
 
-            </ScrollView>
 
-            {loading && (
-                <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color={colors.primary || "#007AFF"} />
-                    <Text style={styles.loadingText}>{isUpdateMode ? "Updating..." : "Registering..."}</Text>
-                </View>
-            )}
+                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    {guests.map((guest, index) => (
+                        <View style={styles.guestCard} key={index}>
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                                <Text style={styles.guestTitle}>Guest {index + 1}</Text>
+                                {index !== 0 && (
+                                    <TouchableOpacity onPress={() => handleRemoveGuest(index)}>
+                                        <Text style={{ color: "red", fontWeight: "600" }}>Remove</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        </SafeAreaView>
+                            <Text style={styles.label}>Name</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter name"
+                                value={guest.name}
+                                onChangeText={(text) => handleInputChange(index, "name", text)}
+                            />
+
+                            <Text style={styles.label}>Email Address</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter email"
+                                keyboardType="email-address"
+                                value={guest.email}
+                                onChangeText={(text) => handleInputChange(index, "email", text)}
+                            />
+
+                            <Text style={styles.label}>Phone</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter phone number"
+                                keyboardType="phone-pad"
+                                value={guest.phone}
+                                onChangeText={(text) => handleInputChange(index, "phone", text)}
+                            />
+                        </View>
+                    ))}
+                    {guests.length < 3 && (
+                        <TouchableOpacity style={styles.button} onPress={handleAddGuest}>
+                            <Image
+                                source={require("../assets/icons/endo-add.png")}
+                                style={styles.buttonIcon}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.buttonText}>Add Guest</Text>
+                        </TouchableOpacity>
+                    )}
+
+                </ScrollView>
+
+                {loading && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator size="large" color={colors.primary || "#007AFF"} />
+                        <Text style={styles.loadingText}>{isUpdateMode ? "Updating..." : "Registering..."}</Text>
+                    </View>
+                )}
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </SafeAreaView>
+        </KeyboardAvoidingView >
+
     );
 };
 

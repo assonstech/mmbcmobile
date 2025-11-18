@@ -19,6 +19,8 @@ import EventRegistrationAsScreen from './src/screens/EventRegistrationAsScreen'
 import GuestScreen from './src/screens/GuestScreen'
 import OrganizationChart from './src/screens/OrganizationChart'
 import SignUpScreen from './src/screens/RegisterScreen'
+import GuestDetailScreen from './src/screens/GuestDetailScreen'
+
 
 
 
@@ -87,6 +89,8 @@ export default function App() {
           <Stack.Screen name={Screen.GuestScreen} component={GuestScreen} />
           <Stack.Screen name={Screen.OrganizationChart} component={OrganizationChart} />
           <Stack.Screen name={Screen.SignUp} component={SignUpScreen} />
+          <Stack.Screen name={Screen.GuestDetail} component={GuestDetailScreen} />
+
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

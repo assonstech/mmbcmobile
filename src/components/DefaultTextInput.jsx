@@ -37,6 +37,7 @@ function DefaultTextInput({ label, placeholder, secureTextEntry, style, ...props
                   ? require('../assets/icons/eye.png') 
                   : require('../assets/icons/eyeSlash.png') 
               }
+              tintColor={colors.text}
               style={styles.icon}
             />
           </TouchableOpacity>

@@ -54,17 +54,43 @@ const EventDetailScreen = ({ navigation, route }) => {
     };
 
     // Determine if event date is today or in the past
-    const isEventPastOrToday = () => {
-        if (!event?.eventDate) return true; // hide if no date
+    // const isEventPastOrToday = () => {
+    //     if (!event?.eventDate) return true; // hide if no date
+    //     const eventDate = new Date(event.eventDate);
+    //     const today = new Date();
+
+    //     // Normalize both dates to remove time
+    //     eventDate.setHours(0, 0, 0, 0);
+    //     today.setHours(0, 0, 0, 0);
+
+    //     return eventDate <= today; // true if event is today or before
+    // };
+    const isEventAllowedToRegister = () => {
+        if (!event?.eventDate) return false;
+
         const eventDate = new Date(event.eventDate);
         const today = new Date();
 
-        // Normalize both dates to remove time
+        // Normalize times
         eventDate.setHours(0, 0, 0, 0);
         today.setHours(0, 0, 0, 0);
 
-        return eventDate <= today; // true if event is today or before
+        // Registration only allowed if today is before event date
+        if (today >= eventDate) return false;
+
+        // Calculate difference in days
+        const diffTime = eventDate - today;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // Disallow registration on 3, 2, 1 days before and event day
+        if ([0, 1, 2, 3].includes(diffDays)) return false;
+
+        // Allowed on all other days
+        return true;
     };
+
+
+
 
 
     const formatTimeTo12Hour = (timeString) => {
@@ -112,7 +138,7 @@ const EventDetailScreen = ({ navigation, route }) => {
     };
 
     const handleGuestPress = () => {
-        navigation.navigate(Screen.GuestScreen, { isMemberInclude: eventDetail?.registration?.isMemberInclude, registrationId: eventDetail?.registration?.registrationId, guestData: eventDetail?.guests || [], onFinish: () => fetchEventDetailById(false) });
+        navigation.navigate(Screen.GuestDetail, { isMemberInclude: eventDetail?.registration?.isMemberInclude, registrationId: eventDetail?.registration?.registrationId, guestData: eventDetail?.guests || [], isEditAllow: isEventAllowedToRegister(), onFinish: () => fetchEventDetailById(false) });
     };
 
     const SkeletonBlock = ({ width, height, style }) => {
@@ -219,7 +245,7 @@ const EventDetailScreen = ({ navigation, route }) => {
                 </View>
             </ScrollView>
 
-            {!isEventPastOrToday() && (
+            {isEventAllowedToRegister() && (
                 <View style={styles.bottomButtonContainer}>
                     <TouchableOpacity
                         style={[styles.bottomButton, { backgroundColor: isRegistered ? colors.cancelButton || "#E53935" : colors.button }]}

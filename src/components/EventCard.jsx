@@ -54,11 +54,11 @@ const EventCard = ({ item, onPress }) => {
             {/* Bottom Row */}
             <View style={styles.bottomRow}>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/calendar.png')} style={{ width: 24, height: 24 }} />
+                    <Image source={require('../assets/icons/endo-calendar.png')} style={{ width: 24, height: 24,tintColor:'white' }} />
                     <Text style={styles.dateText}>{item?.date}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24 }} />
+                    <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24,tintColor:'white' }} />
                     <Text style={styles.timeText}>{item.time}</Text>
                 </View>
             </View>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     priceText: {
-        color: '#fff',
+        color: colors.text,
         fontFamily: FontFamily.SemiBold,
         fontSize: 14,
     },

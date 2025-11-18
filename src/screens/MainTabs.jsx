@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     paddingHorizontal: 14,
-    overflow: 'hidden', // ✅ fixes border clipping on Android
+    overflow: 'hidden', 
   },
   icon: {
     width: 24,

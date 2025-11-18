@@ -34,6 +34,8 @@ const ChangePasswordScreen = ({ navigation }) => {
     const overlayOpacity = useRef(new Animated.Value(0)).current;
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [alertAction, setAlertAction] = useState(() => () => setAlertVisible(false));
+
 
     const fadeInOverlay = () => {
         Animated.timing(overlayOpacity, {
@@ -87,9 +89,31 @@ const ChangePasswordScreen = ({ navigation }) => {
 
                 setAlertMessage("Password changed successfully");
                 setAlertVisible(true);
+                setAlertAction(() => () => {
+                    setAlertVisible(false);
+                    navigation.reset({
+                        index: 0,
+                        routes: [
+                            {
+                                name: Screen.MainTabs,
+                                state: {
+                                    index: 2,
+                                    routes: [
+                                        { name: "Home" },
+                                        { name: "Hub" },
+                                        { name: "More" },
+                                    ],
+                                },
+                            },
+                        ],
+                    });
+                });
             } else {
-                setAlertMessage(response?.message || "Failed to change password");
+                setAlertMessage("Current Password is incorrect");
                 setAlertVisible(true);
+                setAlertAction(() => () => {
+                    setAlertVisible(false);
+                });
             }
         } catch (err) {
             console.error("❌ Error changing password:", err);
@@ -184,24 +208,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 visible={alertVisible}
                 message={alertMessage}
                 confirmText="OK"
-                onConfirm={() =>
-                    navigation.reset({
-                        index: 0, // index of MainTabs in the stack
-                        routes: [
-                            {
-                                name: Screen.MainTabs,
-                                state: {
-                                    index: 2,
-                                    routes: [
-                                        { name: "Home" },
-                                        { name: "Hub" },
-                                        { name: "More" },
-                                    ],
-                                },
-                            },
-                        ],
-                    })
-                }
+                onConfirm={alertAction}
             />
         </SafeAreaView>
     );

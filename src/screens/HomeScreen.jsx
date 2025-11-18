@@ -138,7 +138,7 @@ const HomeScreen = ({ navigation }) => {
         const checkDefaultPassword = async () => {
             try {
                 const isDefaultPassword = await HttpSerivce.getIsDefaultPassword();
-                console.log("isDefalpawwo",isDefaultPassword)
+                console.log("isDefalpawwo", isDefaultPassword)
                 if (isDefaultPassword && !isDialogShown) {
                     setIsDialogShown(true); // ✅ Prevent future dialogs
                     Alert.alert(
@@ -311,10 +311,12 @@ const HomeScreen = ({ navigation }) => {
                     <Text style={styles.headerText}>Welcome to MMBC</Text>
                     <View style={styles.filterContainer}>
                         <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
-                            <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
+                            {!selectedDate && (
+                                <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
+                            )}
                             <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
                             {selectedDate && (
-                                <TouchableOpacity onPress={clearDateFilter} style={{ marginLeft: 8 }}>
+                                <TouchableOpacity onPress={clearDateFilter} style={{ marginLeft: 8 }} hitSlop={20}>
                                     <Image source={require("../assets/icons/close.png")} style={styles.cancelIcon} />
                                 </TouchableOpacity>
                             )}
@@ -409,7 +411,7 @@ const styles = StyleSheet.create({
         borderRadius: 9999,
         borderColor: colors.textInputBorderColor,
     },
-    filterIcon: { width: 24, height: 24, tintColor: colors.text, marginRight: 8 },
+    filterIcon: { width: 18, height: 18, tintColor: colors.text, marginRight: 8 },
     filterText: {
         fontFamily: FontFamily.Medium,
         fontSize: 16,

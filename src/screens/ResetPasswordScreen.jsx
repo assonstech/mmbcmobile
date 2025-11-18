@@ -18,7 +18,6 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     const { email, isFromLogin } = route?.params || {}
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const isPopping = useRef(false); 
     const [loading, setLoading] = useState(false)
     const overlayOpacity = useRef(new Animated.Value(0)).current;
     const [alertVisible, setAlertVisible] = useState(false);
@@ -42,7 +41,14 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
     const handleCofirm = () => {
         if (isFromLogin) {
-            navigation.navigate(Screen.Login)
+            navigation.reset({
+                index: 0,
+                routes: [
+                    {
+                        name: Screen.Login
+                    },
+                ],
+            })
         } else {
             navigation.reset({
                 index: 0,
@@ -62,26 +68,6 @@ const ResetPasswordScreen = ({ navigation, route }) => {
             })
         }
     }
-
-
-
-    // useEffect(() => {
-    //     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-    //         if (isPopping.current) {
-    //             isPopping.current = false;
-    //             return;
-    //         }
-
-    //         e.preventDefault();
-
-    //         isPopping.current = true;
-
-    //         navigation.pop(3);
-
-    //     });
-
-    //     return unsubscribe;
-    // }, [navigation]);
 
     const isValid =
         newPassword.trim().length >= 4 &&

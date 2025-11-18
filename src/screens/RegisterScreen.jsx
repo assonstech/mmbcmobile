@@ -51,6 +51,8 @@ const RegisterScreen = ({ navigation }) => {
     const [alertAction, setAlertAction] = useState(() => () => setAlertVisible(false));
 
     const [membershipOptions, setMembershipOptions] = useState([]);
+    const [imageError, setImageError] = useState("");
+
 
     const [form, setForm] = useState({
         typeOfMembershipId: "",
@@ -65,6 +67,7 @@ const RegisterScreen = ({ navigation }) => {
         representiveName: "",
         representivePosition: "",
         representiveNationality: "",
+        passwordHash: "",
         isCEO: false
     });
 
@@ -116,11 +119,17 @@ const RegisterScreen = ({ navigation }) => {
     }, [selectedState]);
 
     useEffect(() => {
-        const memberNRC = selectedState && selectedTownship && selectedType && nrcNumber
-            ? `${selectedState}/${selectedTownship}(${selectedType})${nrcNumber}`
-            : "";
-        setForm(f => ({ ...f, memberNRC }));
+        const memberNRC =
+            selectedState && selectedTownship && selectedType && nrcNumber
+                ? `${selectedState}/${selectedTownship}(${selectedType})${nrcNumber}`
+                : "";
+
+        setForm(prev => {
+            if (prev.memberNRC === memberNRC) return prev; // ⛔ prevent infinite loop
+            return { ...prev, memberNRC };
+        });
     }, [selectedState, selectedTownship, selectedType, nrcNumber]);
+
 
     const fadeInOverlay = () => Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     const fadeOutOverlay = () => Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
@@ -249,6 +258,14 @@ const RegisterScreen = ({ navigation }) => {
     const validateForm = () => {
         const errors = {};
 
+        // IMAGE REQUIRED
+        if (!profileImage && !form.companyOrIndividualImage) {
+            errors.profileImage = "Profile image is required";
+            setImageError("Profile image is required");
+        } else {
+            setImageError("");
+        }
+
         // NRC
         if (!selectedState) errors.state = "State required";
         if (!selectedTownship) errors.township = "Township required";
@@ -260,13 +277,21 @@ const RegisterScreen = ({ navigation }) => {
         if (!form.representiveName) errors.representiveName = "Name is required";
         if (!form.email) errors.email = "Email is required";
         else if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = "Invalid email format";
+
         if (!form.phone) errors.phone = "Phone is required";
         else if (!/^\d{7,15}$/.test(form.phone)) errors.phone = "Invalid phone number";
+
         if (!form.companyOrIndividualName) errors.companyOrIndividualName = "Company name is required";
         if (!form.companyOrIndividualAddress) errors.companyOrIndividualAddress = "Company address is required";
         if (!form.representivePosition) errors.representivePosition = "Position is required";
         if (!form.representiveNationality) errors.representiveNationality = "Nationality is required";
         if (!form.typeOfMembershipId) errors.typeOfMembershipId = "Membership type is required";
+        if (!form.passwordHash) {
+            errors.passwordHash = "Password is required";
+        } else if (!/^\d{4}$/.test(form.passwordHash)) {
+            errors.passwordHash = "Password must be exactly 4 digits";
+        }
+
 
         setFormErrors(errors);
         setNrcErrors({
@@ -278,6 +303,7 @@ const RegisterScreen = ({ navigation }) => {
 
         return Object.keys(errors).length === 0;
     };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -300,6 +326,9 @@ const RegisterScreen = ({ navigation }) => {
                     <Text style={styles.changePhotoText}>{form.companyOrIndividualImage || profileImage ? "Change Photo" : "Add Photo"}</Text>
                 </TouchableOpacity>
             </View>
+            {imageError ? (
+                <Text style={{ color: "red", marginHorizontal: 33 }}>{imageError}</Text>
+            ) : null}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -386,6 +415,7 @@ const RegisterScreen = ({ navigation }) => {
                     {[
                         { key: "representiveName", label: "Name" },
                         { key: "email", label: "Email" },
+                        { key: "passwordHash", label: "Password" },
                         { key: "phone", label: "Phone" },
                         { key: "companyOrIndividualName", label: "Company Name" },
                         { key: "companyOrIndividualAddress", label: "Company Address" },
