@@ -9,7 +9,6 @@ const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const EventCard = ({ item, onPress }) => {
-    console.log("item", item)
     const [loading, setLoading] = useState(false);
 
     return (

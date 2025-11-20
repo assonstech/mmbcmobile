@@ -139,7 +139,6 @@ export default function LoginScreen() {
         setAlertVisible(true);
       }
     } catch (err) {
-      console.log("Login error:", err);
       setAlertMessage("Something went wrong. Please try again.");
       setAlertVisible(true);
     } finally {

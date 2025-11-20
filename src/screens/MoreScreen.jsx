@@ -72,7 +72,6 @@ const MoreScreen = ({ navigation }) => {
                 index: 0,
                 routes: [{ name: Screen.Login }],
             });
-            console.log("User logged out successfully");
         } catch (error) {
             console.error("Logout error:", error);
         }

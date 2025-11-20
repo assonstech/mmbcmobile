@@ -60,14 +60,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.log("error",error.message)
     if (error.message === "Network Error") {
       navigate(Screen.NetworkError);
     }
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
       navigate(Screen.Login);
-      console.log('Unauthorized: token removed');
     }
     return Promise.reject(error);
   }

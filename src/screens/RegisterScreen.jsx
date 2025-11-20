@@ -183,7 +183,6 @@ const RegisterScreen = ({ navigation }) => {
 
         } catch (err) {
             if (!err?.message?.toLowerCase().includes("cancel")) {
-                console.log("Image picking error:", err);
                 setAlertMessage("An error occurred while selecting the image.");
                 setAlertVisible(true);
                 setAlertAction(() => () => setAlertVisible(false));
@@ -213,11 +212,9 @@ const RegisterScreen = ({ navigation }) => {
             const res = await HttpSerivce.post("/member/single-upload/profileImage", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            console.log("image", res)
 
             const memberForm = { ...form, companyOrIndividualImage: res?.profileImage };
             const createRes = await createMember(memberForm);
-            console.log("repone", createRes)
             if (createRes?.success) {
                 setAlertMessage("Register successful!");
                 setAlertVisible(true);
@@ -243,7 +240,6 @@ const RegisterScreen = ({ navigation }) => {
             }
 
         } catch (error) {
-            console.log("Submit Error:", error);
             setAlertMessage("An error occurred during submission.");
             setAlertVisible(true);
             setAlertAction(() => () => setAlertVisible(false));

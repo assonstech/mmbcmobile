@@ -99,7 +99,6 @@ const MyProfileScreen = ({ navigation, route }) => {
                 );
 
                 if (!allGranted) {
-                    console.log("Camera or Gallery permission denied");
                     return false;
                 }
 

@@ -83,9 +83,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         try {
             setLoading(true);
             fadeInOverlay();
-            console.log("Postbody", postBody)
             const response = await resetPassword(postBody)
-            console.log(response)
             if (response?.success) {
                 setAlertMessage("Password Reset Successfully");
                 setAlertVisible(true);

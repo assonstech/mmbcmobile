@@ -23,7 +23,6 @@ const colors = isDarkMode ? DarkColors : LightColors;
 
 const GuestScreen = ({ navigation, route }) => {
     const { onFinish, isMemberInclude: initialMemberInclude, guestData, eventId, registrationId } = route?.params || {};
-    console.log("isMemberInclude:", initialMemberInclude, "guestData:", guestData);
 
     const initialGuests = Array.isArray(guestData) && guestData.length > 0
         ? guestData.map(g => ({
@@ -76,17 +75,14 @@ const GuestScreen = ({ navigation, route }) => {
             })),
         };
 
-        console.log("Register Event Payload:", payload);
 
         try {
             const res = await registerEvent(payload);
 
             if (res.success) {
-                console.log("✅ Registration successful:", res);
                 if (onFinish) onFinish();
                 navigation.pop(2);
             } else {
-                console.log("❌ Registration failed:", res);
                 setError(res.message || "Failed to register event");
             }
         } catch (err) {
@@ -115,11 +111,9 @@ const GuestScreen = ({ navigation, route }) => {
             const res = await updateAttandence(payload);
 
             if (res.success) {
-                console.log("✅ Registration successful:", res);
                 if (onFinish) onFinish();
                 navigation.pop(2);
             } else {
-                console.log("❌ Registration failed:", res);
                 setError(res.message || "Failed to update event");
             }
         } catch (err) {

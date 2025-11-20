@@ -140,7 +140,6 @@ const HomeScreen = ({ navigation }) => {
         const checkDefaultPassword = async () => {
             try {
                 const isDefaultPassword = await HttpSerivce.getIsDefaultPassword();
-                console.log("isDefalpawwo", isDefaultPassword)
                 if (isDefaultPassword) {
                     setIsDialogVisible(true); // ✅ Prevent future dialogs
                     // Alert.alert(

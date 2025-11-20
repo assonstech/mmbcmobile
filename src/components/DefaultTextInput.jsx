@@ -8,7 +8,6 @@ const isDarkMode = true; // default dark mode
 const colors = isDarkMode ? DarkColors : LightColors;
 
 function DefaultTextInput({ label, placeholder, secureTextEntry, style, ...props }) {
-    console.log("ffdfere")
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
   const togglePasswordVisibility = () => {

@@ -15,7 +15,6 @@ export async function login(email, password) {
 
     // Call API
     const res = await http.post('/member/login', { email, password });
-    console.log('Login API response:', res);
 
     if (res.success) {
       return res

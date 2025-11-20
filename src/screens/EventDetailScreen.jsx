@@ -110,7 +110,6 @@ const EventDetailScreen = ({ navigation, route }) => {
             setDisabled(true)
             if (showLoading) setLoading(true);
             const response = await fetchEventDetail(item?.id);
-            console.log('efef"', response)
             if (response?.success && response?.data?.event) {
                 setEventDetail(response.data);
             }

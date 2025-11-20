@@ -66,7 +66,6 @@ const VerificationScreen = ({ navigation, route }) => {
       setLoading(true);
       fadeInOverlay();
       const response = await verifyOTP(email, otp);
-      console.log("respone", response)
 
       if (response?.success) {
 
@@ -87,7 +86,6 @@ const VerificationScreen = ({ navigation, route }) => {
         showToast("Invalid OTP code" || "Failed to resend OTP ❌", "error");
       }
     } catch (err) {
-      console.log("sendOTP error:", err);
       showToast("Network error. Please try again.", "error");
     } finally {
       fadeOutOverlay();
@@ -109,7 +107,6 @@ const VerificationScreen = ({ navigation, route }) => {
         showToast(response?.message || "Failed to resend OTP ❌", "error");
       }
     } catch (err) {
-      console.log("sendOTP error:", err);
       showToast("Network error. Please try again.", "error");
     } finally {
       fadeOutOverlay();

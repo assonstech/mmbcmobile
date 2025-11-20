@@ -8,7 +8,6 @@ const isDarkMode = true; // default dark mode
 const colors = isDarkMode ? DarkColors : LightColors;
 
 function DefaultButton({ title, onPress, style, textStyle, ...props }) {
-    console.log("deaftbutton")
   return (
     <TouchableOpacity
       onPress={onPress}

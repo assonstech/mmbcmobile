@@ -72,7 +72,6 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
         setAlertVisible(true);
       }
     } catch (err) {
-      console.log("sendOTP error:", err);
       setAlertMessage("Something went wrong. Please check your connection and try again.");
       setAlertVisible(true);
     } finally {

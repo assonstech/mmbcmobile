@@ -49,7 +49,6 @@ export default function App() {
           setInitialRoute(Screen.Login);
         }
       } catch (err) {
-        console.log('Error reading token:', err);
         setInitialRoute(Screen.Login);
       }
     };

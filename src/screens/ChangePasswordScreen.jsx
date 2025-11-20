@@ -72,16 +72,13 @@ const ChangePasswordScreen = ({ navigation }) => {
             setLoading(true);
             fadeInOverlay();
 
-            console.log("🔹 Sending password change request:", postBody);
             const response = await changePassword(postBody);
-            console.log("🔹 Change password response:", response);
 
             if (response?.success) {
                 // Check local isDefaultPassword before calling API
                 const isDefault = await HttpSerivce.getIsDefaultPassword(); // assume you have a getter
                 if (isDefault) {
                     const updateResponse = await updateIsDefaultPassword(false);
-                    console.log("🔹 Update isDefaultPassword response:", updateResponse);
                 }
 
                 // Always update locally

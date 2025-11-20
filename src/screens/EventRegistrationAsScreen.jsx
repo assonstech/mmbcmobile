@@ -70,16 +70,13 @@ const EventRegistrationAsScreen = ({ navigation, route }) => {
         isMemberInclude: true,
       };
 
-      console.log("🔹 Sending payload:", payload);
 
       const res = await registerEvent(payload);
 
       if (res.success) {
-        console.log("✅ Registered:", res);
         if (onFinish) onFinish();
         navigation.goBack();
       } else {
-        console.log("❌ Registration failed:", res);
         setError(res.message || "Failed to register event");
       }
     } catch (err) {
