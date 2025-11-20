@@ -19,7 +19,8 @@ const Screen = {
   GuestScreen:'guestScreen',
   OrganizationChart:'organizationChart',
   SignUp:'signup',
-  GuestDetail:'guestDetail'
+  GuestDetail:'guestDetail',
+  NetworkError:'networkError'
 };
 
 export default Screen;

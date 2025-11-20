@@ -288,10 +288,12 @@ const RegisterScreen = ({ navigation }) => {
         if (!form.typeOfMembershipId) errors.typeOfMembershipId = "Membership type is required";
         if (!form.passwordHash) {
             errors.passwordHash = "Password is required";
-        } else if (!/^\d{4}$/.test(form.passwordHash)) {
-            errors.passwordHash = "Password must be exactly 4 digits";
+        } else {
+            const digitCount = (form.passwordHash.match(/\d/g) || []).length;
+            if (digitCount < 4) {
+                errors.passwordHash = "Password must contain at least 4 characters or digits";
+            }
         }
-
 
         setFormErrors(errors);
         setNrcErrors({

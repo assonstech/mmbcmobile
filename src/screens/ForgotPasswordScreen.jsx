@@ -66,9 +66,9 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
       const response = await sendOTP(email);
 
       if (response?.success) {
-        navigation.navigate(Screen.VerificationScreen, { email,isFromLogin });
+        navigation.navigate(Screen.VerificationScreen, { email, isFromLogin });
       } else {
-        setAlertMessage(response?.message || "Failed to send OTP. Please try again.");
+        setAlertMessage("No account found with this email address.");
         setAlertVisible(true);
       }
     } catch (err) {
@@ -125,6 +125,8 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
     <CustomAlertModal
       visible={alertVisible}
       message={alertMessage}
+      confirmText="OK"
+      onConfirm={() => setAlertVisible(false)}
       onClose={() => setAlertVisible(false)}
     />
   </SafeAreaView>

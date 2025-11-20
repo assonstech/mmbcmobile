@@ -205,7 +205,7 @@ const EventDetailScreen = ({ navigation, route }) => {
                         }
                     }}
                 >
-                    <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="stretch">
+                    <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="cover">
                         <View style={styles.overlay} />
                         <View style={styles.ruleContainer}>
                             <Text style={styles.ruleText}>{event.eventRule || "No rules provided"}</Text>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     bottomButtonText: { fontFamily: FontFamily.SemiBold, fontSize: 16 },
 
     overlayLoading: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: "rgba(0,0,0,0.4)",
         justifyContent: "center",
         alignItems: "center",

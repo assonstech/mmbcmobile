@@ -20,16 +20,15 @@ import GuestScreen from './src/screens/GuestScreen'
 import OrganizationChart from './src/screens/OrganizationChart'
 import SignUpScreen from './src/screens/RegisterScreen'
 import GuestDetailScreen from './src/screens/GuestDetailScreen'
-
-
-
-
+import NetworkErrorScreen from './src/screens/NetworkErrorScreen'
+import { navigationRef } from './src/common/NavigationService';
 
 
 import MainTabs from './src/screens/MainTabs';
 import DarkColors from './src/colors/dark';
 import Screen from './src/utils/Screen';
 import { useNotification } from "./src/notifications/useNotification";
+
 
 
 const Stack = createNativeStackNavigator();
@@ -72,7 +71,7 @@ export default function App() {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={DarkColors.background}
       />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
           <Stack.Screen name={Screen.MainTabs} component={MainTabs} />
           <Stack.Screen name={Screen.Login} component={LoginScreen} />
@@ -90,6 +89,8 @@ export default function App() {
           <Stack.Screen name={Screen.OrganizationChart} component={OrganizationChart} />
           <Stack.Screen name={Screen.SignUp} component={SignUpScreen} />
           <Stack.Screen name={Screen.GuestDetail} component={GuestDetailScreen} />
+          <Stack.Screen name={Screen.NetworkError} component={NetworkErrorScreen} />
+
 
         </Stack.Navigator>
       </NavigationContainer>

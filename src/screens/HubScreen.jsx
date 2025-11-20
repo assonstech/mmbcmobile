@@ -17,6 +17,7 @@ import { getFullImageUrl } from "../common/HttpSerivce";
 import { timeAgo } from "../utils/timeHelper";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import CustomDatePicker from "../components/CustomDatePicker";
+import { useFocusEffect } from "@react-navigation/native";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -47,14 +48,23 @@ const HubScreen = () => {
         }
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            await loadPosts();
-            setLoading(false);
-        };
-        fetchData();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+
+            const fetchData = async () => {
+                if (isActive) setLoading(true);
+                await loadPosts();
+                if (isActive) setLoading(false);
+            };
+
+            fetchData();
+
+            return () => {
+                isActive = false;
+            };
+        }, [])
+    );
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -86,7 +96,7 @@ const HubScreen = () => {
         <SafeAreaView style={{ flex: 1, paddingBottom: 80, backgroundColor: colors.bottomTabbarLabelColor }}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerText}>HR Working Group</Text>
+                <Text style={styles.headerText}>HR Working Groups</Text>
                 <View style={styles.filterContainer}>
                     <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
                         {!selectedDate && (

@@ -57,7 +57,7 @@ const MyProfileScreen = ({ navigation }) => {
                     setCeo({
                         name: ceoData.representiveName,
                         profileImage: ceoData.companyOrIndividualImage,
-                        position: "CEO of institute", // static
+                        position: ceoData.ecPosition || "President",
                     });
                 }
 
@@ -117,7 +117,7 @@ const MyProfileScreen = ({ navigation }) => {
                 {/* Profile Image */}
                 <TouchableOpacity
                     style={styles.profileWrapper}
-                    onPress={() => openImageViewer({uri: getFullImageUrl(ceo.profileImage)})}
+                    onPress={() => openImageViewer({ uri: getFullImageUrl(ceo.profileImage) })}
                 >
                     <Image
                         source={ceo.profileImage
@@ -160,12 +160,12 @@ const MyProfileScreen = ({ navigation }) => {
                     data={loading ? Array(3).fill({}) : secretaries} // show 3 placeholders
                     keyExtractor={(item, index) => item.id || index.toString()}
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ marginHorizontal: 16, paddingVertical: 8,paddingRight:16 }}
+                    contentContainerStyle={{ marginHorizontal: 16, paddingVertical: 8, paddingRight: 16 }}
                     renderItem={({ item }) =>
                         loading ? (
                             <View style={styles.skeletonCard} />
                         ) : (
-                            <HorizontalProfileCard item={item} 
+                            <HorizontalProfileCard item={item}
                             // onPress={() => openImageViewer(item.image)} 
                             />
                         )
@@ -276,8 +276,8 @@ const styles = StyleSheet.create({
         height: "70%",
         borderRadius: 20,
         overflow: "hidden",
-        borderWidth:1,
-        borderColor:colors.loginAccountColor
+        borderWidth: 1,
+        borderColor: colors.loginAccountColor
     },
     horizontalImage: { width: "100%", height: "100%", resizeMode: "contain" },
 

@@ -53,7 +53,7 @@ const OrganizationChart = ({ navigation }) => {
         transformedMembers.push({
           memberId: (lastMemberId + index + 1).toString(),
           name: sec.name,
-          position: "Secretary",
+          position: "Secretariat",
           parentMemberId: ceoId,
           isCEO: false,
           avatar: getFullImageUrl(sec.photoPath),

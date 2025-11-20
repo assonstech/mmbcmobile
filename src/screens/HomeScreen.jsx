@@ -10,7 +10,8 @@ import {
     Image,
     FlatList,
     PanResponder,
-    Alert
+    Alert,
+    Modal
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -44,7 +45,8 @@ const HomeScreen = ({ navigation }) => {
     const [memberInfo, setMemberInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [isDialogShown, setIsDialogShown] = useState(false);
+    const [isDialogVisible, setIsDialogVisible] = useState(false);
+
 
 
     const lastTranslateY = useRef(containerOffset);
@@ -139,19 +141,19 @@ const HomeScreen = ({ navigation }) => {
             try {
                 const isDefaultPassword = await HttpSerivce.getIsDefaultPassword();
                 console.log("isDefalpawwo", isDefaultPassword)
-                if (isDefaultPassword && !isDialogShown) {
-                    setIsDialogShown(true); // ✅ Prevent future dialogs
-                    Alert.alert(
-                        "Security Alert",
-                        "You are using a default password. Please change it for your account’s security.",
-                        [
-                            {
-                                text: "Change Now",
-                                onPress: () => navigation.navigate(Screen.ChangePassword),
-                            },
-                            { text: "Later", style: "cancel" },
-                        ]
-                    );
+                if (isDefaultPassword) {
+                    setIsDialogVisible(true); // ✅ Prevent future dialogs
+                    // Alert.alert(
+                    //     "Security Alert",
+                    //     "You are using a default password. Please change it for your account’s security.",
+                    //     [
+                    //         {
+                    //             text: "Change Now",
+                    //             onPress: () => navigation.navigate(Screen.ChangePassword),
+                    //         },
+                    //         { text: "Later", style: "cancel" },
+                    //     ]
+                    // );
                 }
             } catch (err) {
                 console.error("Error checking default password:", err);
@@ -161,15 +163,6 @@ const HomeScreen = ({ navigation }) => {
         checkDefaultPassword();
     }, []); // 👈 runs only once
 
-
-    // useEffect(() => {
-    //     const fetchData = async () => {
-    //         setLoading(true);
-    //         await Promise.all([loadEvents(), loadMemberInfo()]);
-    //         setLoading(false);
-    //     };
-    //     fetchData();
-    // }, []);
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
@@ -250,6 +243,15 @@ const HomeScreen = ({ navigation }) => {
         if (!date) return "Filter";
         const options = { year: "numeric", month: "short", day: "numeric" };
         return date.toLocaleDateString(undefined, options);
+    };
+
+    const handleChangePassword = () => {
+        setIsDialogVisible(false);
+        navigation.navigate(Screen.ChangePassword);
+    };
+
+    const handleLater = () => {
+        setIsDialogVisible(false);
     };
 
     const toggleExpand = () => {
@@ -363,6 +365,29 @@ const HomeScreen = ({ navigation }) => {
                     />
                 )}
             </Animated.View>
+            <Modal
+                visible={isDialogVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={handleLater}
+            >
+                <View style={styles.overlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.title}>Security Alert</Text>
+                        <Text style={styles.message}>
+                            You are using a default password. Please change it for your account’s security.
+                        </Text>
+                        <View style={styles.buttonRow}>
+                            <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
+                                <Text style={styles.buttonText}>Change Now</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleLater}>
+                                <Text style={[styles.buttonText, styles.cancelText]}>Later</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -434,5 +459,53 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         color: colors.text,
         textAlign: "center",
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContainer: {
+        width: "85%",
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        elevation: 10,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 12,
+        textAlign: "center",
+    },
+    message: {
+        fontSize: 16,
+        marginBottom: 20,
+        textAlign: "center",
+        lineHeight: 22,
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    button: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 30,
+        backgroundColor: "#FACC15",
+        marginHorizontal: 5,
+        alignItems: "center",
+    },
+    buttonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    cancelButton: {
+        backgroundColor: "#ccc",
+    },
+    cancelText: {
+        color: "#333",
     },
 });

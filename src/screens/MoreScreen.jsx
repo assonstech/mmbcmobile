@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     Image,
     Platform,
@@ -16,6 +16,7 @@ import { FontFamily } from "../styles/fontStyle";
 import Screen from "../utils/Screen";
 import { fetchMemberInfo } from "../controllers/MemberController";
 import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
+import { useFocusEffect } from "@react-navigation/native";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -92,9 +93,32 @@ const MoreScreen = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-        loadMemberInfo();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetchMemberInfo();
+                    if (isActive && response.success) {
+                        setMemberInfo(response.data);
+                    }
+                } catch (error) {
+                    console.error("Error fetching member info:", error);
+                } finally {
+                    if (isActive) setLoading(false);
+                }
+            };
+
+            fetchData();
+
+            return () => {
+                isActive = false; // cleanup to avoid setting state on unmounted component
+            };
+        }, [])
+    );
+
 
     const handlePress = (label) => {
         switch (label) {

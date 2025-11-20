@@ -1,6 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { navigate } from "../common/NavigationService"
+import Screen from '../utils/Screen';
 
 // const BASE_URL = Platform.OS === 'android'
 //   ? 'http://10.0.2.2:3000/api'
@@ -10,9 +12,9 @@ import { Platform } from 'react-native';
 //   ? 'http://10.0.2.2:3000'
 //   : 'http://localhost:3000';
 
-const BASE_URL = 'http://assonstech-001-site2.ktempurl.com/api'
+const BASE_URL = 'https://assonstech-001-site2.ktempurl.com/api'
 
-const BASE_Image_URL = 'http://assonstech-001-site2.ktempurl.com'
+const BASE_Image_URL = 'https://assonstech-001-site2.ktempurl.com'
 
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
 const IS_DEFAULT_PASSWORD_KEY = 'IS_DEFAULT_PASSWORD'; // ✅ NEW KEY
@@ -38,7 +40,7 @@ export const formattedPrice = (amount) => new Intl.NumberFormat('en-US', {
   currency: 'USD',
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
-}).format(amount).replace('$','');
+}).format(amount).replace('$', '');
 
 
 
@@ -58,8 +60,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    console.log("error",error.message)
+    if (error.message === "Network Error") {
+      navigate(Screen.NetworkError);
+    }
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
+      navigate(Screen.Login);
       console.log('Unauthorized: token removed');
     }
     return Promise.reject(error);

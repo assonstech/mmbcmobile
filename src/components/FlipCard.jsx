@@ -124,7 +124,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
         .slice(1)
         .join(" ") : " "
     },
-    { icon: EndoGlobal, text: info?.companyOrIndividualAddress },
+    { icon: EndoGlobal, text: "Myanmar Centre Tower 2, 12th floor, Business suite, Kabar Aye Pagoda Rd, Yangon, Myanmar" },
   ];
 
   return (

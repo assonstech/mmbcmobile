@@ -9,7 +9,7 @@ const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const EventCard = ({ item, onPress }) => {
-    console.log("item",item)
+    console.log("item", item)
     const [loading, setLoading] = useState(false);
 
     return (
@@ -55,11 +55,11 @@ const EventCard = ({ item, onPress }) => {
             {/* Bottom Row */}
             <View style={styles.bottomRow}>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/endo-calendar.png')} style={{ width: 24, height: 24,tintColor:'white' }} />
+                    <Image source={require('../assets/icons/endo-calendar.png')} style={{ width: 24, height: 24, tintColor: 'white' }} />
                     <Text style={styles.dateText}>{item?.date}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24,tintColor:'white' }} />
+                    <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24, tintColor: 'white' }} />
                     <Text style={styles.timeText}>{item.time}</Text>
                 </View>
             </View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         width: "100%",
         height: "100%",
         borderRadius: 20,
-        resizeMode: "stretch",
+        resizeMode: "cover",
     },
     topRight: {
         position: "absolute",
@@ -110,8 +110,14 @@ const styles = StyleSheet.create({
     },
     bottomLeft: {
         position: "absolute",
-        bottom: 8,
-        left: 8,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.5)", // semi-transparent overlay
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
     },
     descriptionText: {
         color: "#fff",
@@ -126,7 +132,9 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 20,
         fontSize: 14,
+        marginTop: 4,
     },
+
     bottomRow: {
         flexDirection: "row",
         justifyContent: "space-around",
