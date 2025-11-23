@@ -78,7 +78,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 // Check local isDefaultPassword before calling API
                 const isDefault = await HttpSerivce.getIsDefaultPassword(); // assume you have a getter
                 if (isDefault) {
-                    const updateResponse = await updateIsDefaultPassword(false);
+                    await updateIsDefaultPassword(false);
                 }
 
                 // Always update locally

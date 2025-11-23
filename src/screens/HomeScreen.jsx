@@ -50,7 +50,7 @@ const HomeScreen = ({ navigation }) => {
 
 
     const lastTranslateY = useRef(containerOffset);
-    const chips = ["All", "In-person", "Online", "Registered"];
+    const chips = ["All", "In-person", "Online", "Registered", "Free"];
 
     // ------------------- PanResponder -------------------
     const panResponder = useRef(
@@ -216,6 +216,10 @@ const HomeScreen = ({ navigation }) => {
             case 3:
                 filtered = filtered.filter(item => item.isRegistered === 1);
                 break;
+            case 4:
+                filtered = filtered.filter(item => item.price === 0);
+                break;
+
             default:
                 break;
         }

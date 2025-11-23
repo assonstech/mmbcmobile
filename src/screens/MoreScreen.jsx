@@ -130,7 +130,7 @@ const MoreScreen = ({ navigation }) => {
             case "My Profile":
                 navigation.navigate(Screen.MyProfile, { memberInfo });
                 break;
-            case "Note":
+            case "Contact Us":
                 navigation.navigate(Screen.Note);
                 break;
             case "Change Password":
@@ -148,7 +148,7 @@ const MoreScreen = ({ navigation }) => {
         { label: "My Profile", icon: require("../../src/assets/icons/profileIcon.png") },
         { label: "Change Password", icon: require("../../src/assets/icons/key.png") },
         { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
-        { label: "Note", icon: require("../../src/assets/icons/note.png") },
+        { label: "Contact Us", icon: require("../../src/assets/icons/note.png") },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
         { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
     ];
@@ -179,7 +179,7 @@ const MoreScreen = ({ navigation }) => {
                             source={
                                 memberInfo?.companyOrIndividualImage
                                     ? { uri: getFullImageUrl(memberInfo.companyOrIndividualImage) }
-                                    : require("../../src/assets/images/avatar.png")
+                                    : require("../../src/assets/images/Default.png")
                             }
                             style={styles.profileImage}
                         />
@@ -197,10 +197,10 @@ const MoreScreen = ({ navigation }) => {
                     ) : (
                         <>
                             <Text style={styles.nameText}>
-                                {memberInfo?.representiveName || "No Name"}
+                                {memberInfo?.representiveName || "-"}
                             </Text>
-                            <Text style={styles.emailText}>{memberInfo?.email || "No Email"}</Text>
-                            <Text style={styles.phoneText}>{memberInfo?.phone || "No Phone"}</Text>
+                            <Text style={styles.emailText}>{memberInfo?.email || "-"}</Text>
+                            <Text style={styles.phoneText}>{memberInfo?.telephone || "-"}</Text>
                         </>
                     )}
                 </View>

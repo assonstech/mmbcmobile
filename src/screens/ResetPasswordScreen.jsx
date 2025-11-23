@@ -7,8 +7,9 @@ import { FontFamily } from "../styles/fontStyle";
 import DefaultTextInput from "../components/DefaultTextInput";
 import HeaderWithActions from "../components/HeaderWithActions";
 import Screen from "../utils/Screen";
-import { resetPassword } from "../controllers/MemberController";
+import { resetPassword, updateIsDefaultPassword } from "../controllers/MemberController";
 import CustomAlertModal from "../components/CustomAlertModal";
+import HttpSerivce from "../common/HttpSerivce";
 
 
 const isDarkMode = true;
@@ -85,6 +86,13 @@ const ResetPasswordScreen = ({ navigation, route }) => {
             fadeInOverlay();
             const response = await resetPassword(postBody)
             if (response?.success) {
+                const isDefault = await HttpSerivce.getIsDefaultPassword(); // assume you have a getter
+                if (isDefault) {
+                    await updateIsDefaultPassword(false);
+                }
+
+                // Always update locally
+                await HttpSerivce.setIsDefaultPassword(false);
                 setAlertMessage("Password Reset Successfully");
                 setAlertVisible(true);
             }

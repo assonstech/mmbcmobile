@@ -39,7 +39,9 @@ const EventCard = ({ item, onPress }) => {
 
                 {/* Price Top-Right */}
                 <View style={styles.topRight}>
-                    <Text style={styles.priceText}>{formattedPrice(item.price)} MMK</Text>
+                    <Text style={styles.priceText}>
+                        {item.price ? `${formattedPrice(item.price)} MMK` : 'Free' }
+                    </Text>
                 </View>
 
                 {/* Description & Location Bottom-Left */}
@@ -123,13 +125,11 @@ const styles = StyleSheet.create({
         fontFamily: FontFamily.SemiBold,
         fontSize: 20,
         fontWeight: '600',
-        lineHeight: 28,
     },
     locationText: {
         color: "#fff",
         fontFamily: FontFamily.Medium,
         fontWeight: '500',
-        lineHeight: 20,
         fontSize: 14,
         marginTop: 4,
     },

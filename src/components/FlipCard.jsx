@@ -118,7 +118,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
     { icon: EndoCard, text: info?.memberNRC },
     {
       icon: EndoCalendar,
-      text: info?.createdDate ? new Date(info.createdDate)
+      text: info?.endDate ? new Date(info.endDate)
         .toDateString()
         .split(" ")
         .slice(1)
@@ -150,7 +150,10 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
               source={{ uri: getFullImageUrl(info?.companyOrIndividualImage) }}
               style={styles.profileImage}
             />
+
           </View>
+          <Text style={styles.memberCodeText}>{info?.memberCode}</Text>
+
 
           <View style={styles.overlayContainer}>
             {overlayItems.map((item, index) => (
@@ -265,10 +268,17 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 30,
-    resizeMode: "cover",
+    resizeMode: "contain",
+  },
+  memberCodeText: {
+    position: "absolute",
+    bottom:30,
+    left: 60,
+    fontFamily:FontFamily.Bold,
+    color:'#884600',
+    overflow: "hidden",
   },
 
-  /* 🟣 Detail Skeleton Styles */
   skeletonCard: {
     width: "90%",
     borderRadius: 24,

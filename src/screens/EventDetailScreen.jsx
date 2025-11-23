@@ -11,6 +11,7 @@ import {
     Easing,
     Modal,
     ActivityIndicator,
+    Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -39,6 +40,8 @@ const EventDetailScreen = ({ navigation, route }) => {
     const [disabled, setDisabled] = useState(false);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
     const [imageViewerImages, setImageViewerImages] = useState([]);
+    const [processing, setProcessing] = useState(false);
+
 
 
     const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -87,7 +90,7 @@ const EventDetailScreen = ({ navigation, route }) => {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         // Disallow registration on 3, 2, 1 days before and event day
-        if ([0, 1, 2, 3].includes(diffDays)) return false;
+        if ([0, 1, 2].includes(diffDays)) return false;
 
         // Allowed on all other days
         return true;
@@ -137,7 +140,13 @@ const EventDetailScreen = ({ navigation, route }) => {
 
     const handleButtonPress = () => {
         if (eventDetail?.isRegistered) unRegister();
-        else navigation.navigate(Screen.EventRegistrationAsScreen, { eventId: item?.id, onFinish: () => fetchEventDetailById(false) });
+        else navigation.navigate(Screen.EventRegistrationAsScreen, {
+            eventId: item?.id, onFinish: async () => {
+                setProcessing(true);    // show overlay immediately
+                await fetchEventDetailById(false);
+                setProcessing(false);   //
+            }
+        });
     };
 
     const handleGuestPress = () => {
@@ -207,14 +216,29 @@ const EventDetailScreen = ({ navigation, route }) => {
                     <ImageBackground source={{ uri: getFullImageUrl(event.eventImage) }} style={styles.image} resizeMode="cover">
                         <View style={styles.overlay} />
                         <View style={styles.ruleContainer}>
-                            <Text style={styles.ruleText}>{event.eventRule || "No rules provided"}</Text>
+                            <Text style={styles.ruleText}>
+                                {(event.eventRule || "No rules provided").trim().replace(/\s+/g, ' ')}
+                            </Text>
                         </View>
                     </ImageBackground>
                 </TouchableOpacity>
 
                 <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
                     <Text style={styles.title}>{event.eventTitle}</Text>
-                    <Text style={styles.location}>{event.eventLocation}</Text>
+                    {event.eventType === "online" ? (
+                        <Text style={styles.location}>
+                            Join with this link{" "}
+                            <Text
+                                style={{ color: "blue", textDecorationLine: "underline" }}
+                                onPress={() => Linking.openURL(event.eventLocation)}
+                            >
+                                {event.eventLocation}
+                            </Text>
+                        </Text>
+                    ) : (
+                        <Text style={styles.location}>{event.eventLocation}</Text>
+                    )}
+
 
                     <View style={styles.row}>
                         <Image source={EndoCalendar} style={styles.icon} />
@@ -281,6 +305,12 @@ const EventDetailScreen = ({ navigation, route }) => {
                 visible={isImageViewerVisible}
                 onRequestClose={() => setIsImageViewerVisible(false)}
             />
+            {processing && (
+                <View style={styles.overlayLoading}>
+                    <ActivityIndicator size="large" color="#fff" />
+                </View>
+            )}
+
 
         </SafeAreaView>
     );
@@ -294,17 +324,17 @@ const styles = StyleSheet.create({
     image: { flex: 1, justifyContent: "flex-start" },
     overlay: { ...StyleSheet.absoluteFill },
     ruleContainer: { backgroundColor: colors.ruleBackgroundColor },
-    ruleText: { textAlign: "center", fontFamily: FontFamily.Medium, fontWeight: "500", lineHeight: 20, color: "#fff", fontSize: 14, paddingVertical: 8 },
+    ruleText: { textAlign: "center", fontFamily: FontFamily.Medium, fontWeight: "500", color: "#fff", fontSize: 14, paddingVertical: 8 },
     card: { marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: colors.itemSeparateColor },
-    title: { fontFamily: FontFamily.SemiBold, fontSize: 24, fontWeight: "600", lineHeight: 32, color: colors.text, paddingVertical: 8 },
-    location: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.text, fontWeight: "500", lineHeight: 24, marginBottom: 8 },
+    title: { fontFamily: FontFamily.SemiBold, fontSize: 24, fontWeight: "600", color: colors.text, paddingVertical: 8 },
+    location: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.text, fontWeight: "500", marginBottom: 8 },
     row: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
     icon: { width: 22, height: 22, resizeMode: "contain", marginRight: 8, tintColor: colors.text },
     infoText: { fontFamily: FontFamily.Medium, fontSize: 15, color: colors.text },
     priceText: { marginTop: 6, fontFamily: FontFamily.Medium, fontSize: 15, color: colors.text },
     sectionTitle: { fontFamily: FontFamily.Medium, fontSize: 16, fontWeight: "600", color: colors.text, marginBottom: 6 },
     descriptionContainer: { borderTopColor: colors.itemSeparateColor, paddingTop: 10 },
-    description: { fontFamily: FontFamily.Medium, fontSize: 16, fontWeight: "500", lineHeight: 24, color: colors.text },
+    description: { fontFamily: FontFamily.Medium, fontSize: 16, fontWeight: "500", color: colors.text },
     guestHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     arrowIcon: { width: 18, height: 18, resizeMode: "contain" },
     bottomButtonContainer: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", padding: 16, borderTopWidth: 1, borderTopColor: colors.itemSeparateColor },
