@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     FlatList,
     Dimensions,
+    ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
@@ -133,44 +134,49 @@ const MyProfileScreen = ({ navigation }) => {
                     <Text style={styles.nameText}>{ceo.name}</Text>
                     <Text style={styles.emailText}>{ceo.position}</Text>
                 </View>
-
-                {/* Message Section */}
-                {/* Message Section */}
-                <View style={styles.message}>
-                    {loading ? (
-                        <View style={styles.skeletonMessage} />
-                    ) : (
-                        <Text style={styles.messageText}>
-                            {noteMessage}
-                        </Text>
-                    )}
-                </View>
-
-
-                {/* Assistant Text */}
-                {loading ? (
-                    <View style={styles.skeletonAssistant} />
-                ) : (
-                    <Text style={styles.assistantText}>{"Executive Assistant"}</Text>
-                )}
-
-                {/* Horizontal Scroll Section */}
-                <FlatList
-                    horizontal
-                    data={loading ? Array(3).fill({}) : secretaries} // show 3 placeholders
-                    keyExtractor={(item, index) => item.id || index.toString()}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ marginHorizontal: 16, paddingVertical: 8, paddingRight: 16 }}
-                    renderItem={({ item }) =>
-                        loading ? (
-                            <View style={styles.skeletonCard} />
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Message Section */}
+                    <View style={styles.message}>
+                        {loading ? (
+                            <View style={styles.skeletonMessage} />
                         ) : (
-                            <HorizontalProfileCard item={item}
-                            // onPress={() => openImageViewer(item.image)} 
-                            />
-                        )
-                    }
-                />
+                            <Text style={styles.messageText}>{noteMessage}</Text>
+                        )}
+                    </View>
+
+                    {/* Assistant Text */}
+                    {loading ? (
+                        <View style={styles.skeletonAssistant} />
+                    ) : (
+                        <Text style={styles.assistantText}>{"Executive Assistant"}</Text>
+                    )}
+
+                    {/* Horizontal Scroll Section */}
+                    <FlatList
+                        horizontal
+                        data={loading ? Array(3).fill({}) : secretaries}
+                        keyExtractor={(item, index) => item.id || index.toString()}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                        renderItem={({ item }) =>
+                            loading ? (
+                                <View style={styles.skeletonCard} />
+                            ) : (
+                                <HorizontalProfileCard
+                                    item={item}
+                                    onPress={() => openImageViewer(item.image)}
+                                />
+                            )
+                        }
+                        style={{ marginTop: 16 }}
+                    />
+                </ScrollView>
+
+
 
             </View>
 
@@ -260,7 +266,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         lineHeight: 24,
         color: colors.text,
-        textAlign: 'center'
+        textAlign: 'flex-start'
     },
     assistantText: {
         fontFamily: FontFamily.SemiBold,
@@ -270,16 +276,38 @@ const styles = StyleSheet.create({
         margin: 16,
     },
 
+    // horizontalCard: {
+    //     marginRight: 16,
+    //     width: 269,
+    //     height: "70%",
+    //     borderRadius: 20,
+    //     overflow: "hidden",
+    //     borderWidth: 1,
+    //     borderColor: colors.loginAccountColor
+    // },
+    // horizontalImage: { width: "100%", height: "100%", resizeMode: "contain" },
     horizontalCard: {
         marginRight: 16,
-        width: 269,
-        height: "70%",
+        width: 260,       
+        height: 269,      
         borderRadius: 20,
         overflow: "hidden",
         borderWidth: 1,
         borderColor: colors.loginAccountColor
     },
-    horizontalImage: { width: "100%", height: "100%", resizeMode: "contain" },
+    horizontalImage: {
+        width: "100%",
+        height: "100%",
+        resizeMode: "cover", // fill card
+    },
+    skeletonCard: {
+        marginRight: 16,
+        width: 260,
+        height: 180,
+        borderRadius: 20,
+        backgroundColor: "#E0E0E0",
+    },
+
 
     overlay: {
         position: "absolute",

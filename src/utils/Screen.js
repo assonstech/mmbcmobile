@@ -7,20 +7,22 @@ const Screen = {
   Hub: 'hubScreen',
   MoreScreen: 'moreScreen',
   OrganizationDetail: 'organizationDetail',
-  PrivacyPolicy:'privacyPolicy',
-  MyProfile:'myprofile',
-  Note:'note',
-  ChangePassword:'changePassword',
-  ForgotPassword:'forgotPassword',
-  VerificationScreen:'verification',
-  ResetPasswordScreen:'resetPassword',
-  EventDetailScreen:'eventDetail',
-  EventRegistrationAsScreen:'eventRegistrationAs',
-  GuestScreen:'guestScreen',
-  OrganizationChart:'organizationChart',
-  SignUp:'signup',
-  GuestDetail:'guestDetail',
-  NetworkError:'networkError'
+  PrivacyPolicy: 'privacyPolicy',
+  MyProfile: 'myprofile',
+  Note: 'note',
+  ChangePassword: 'changePassword',
+  ForgotPassword: 'forgotPassword',
+  VerificationScreen: 'verification',
+  ResetPasswordScreen: 'resetPassword',
+  EventDetailScreen: 'eventDetail',
+  EventRegistrationAsScreen: 'eventRegistrationAs',
+  GuestScreen: 'guestScreen',
+  OrganizationChart: 'organizationChart',
+  SignUp: 'signup',
+  GuestDetail: 'guestDetail',
+  NetworkError: 'networkError',
+  Benefit: 'benefit'
+
 };
 
 export default Screen;

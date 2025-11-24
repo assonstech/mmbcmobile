@@ -130,7 +130,7 @@ const MoreScreen = ({ navigation }) => {
             case "My Profile":
                 navigation.navigate(Screen.MyProfile, { memberInfo });
                 break;
-            case "Contact Us":
+            case "About Us":
                 navigation.navigate(Screen.Note);
                 break;
             case "Change Password":
@@ -138,6 +138,9 @@ const MoreScreen = ({ navigation }) => {
                 break;
             case "Organization chart":
                 navigation.navigate(Screen.OrganizationChart);
+                break;
+            case "Benefits & Affiliation Programs":
+                navigation.navigate(Screen.Benefit);
                 break;
             default:
                 console.log("No navigation defined for:", label);
@@ -148,9 +151,11 @@ const MoreScreen = ({ navigation }) => {
         { label: "My Profile", icon: require("../../src/assets/icons/profileIcon.png") },
         { label: "Change Password", icon: require("../../src/assets/icons/key.png") },
         { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
-        { label: "Contact Us", icon: require("../../src/assets/icons/note.png") },
+        { label: "About Us", icon: require("../../src/assets/icons/note.png") },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
         { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
+        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/profileIcon.png") },
+
     ];
 
     return (
@@ -193,10 +198,11 @@ const MoreScreen = ({ navigation }) => {
                             <SkeletonBox width={180} height={24} />
                             <SkeletonBox width={220} height={16} />
                             <SkeletonBox width={140} height={16} />
+
                         </>
                     ) : (
                         <>
-                            <Text style={styles.nameText}>
+                            <Text style={styles.nameText} numberOfLines={2}>
                                 {memberInfo?.representiveName || "-"}
                             </Text>
                             <Text style={styles.emailText}>{memberInfo?.email || "-"}</Text>
@@ -217,7 +223,7 @@ const MoreScreen = ({ navigation }) => {
                     }}
                 >
                     {loading ? (
-                        Array.from({ length: 5 }).map((_, i) => (
+                        Array.from({ length: 7 }).map((_, i) => (
                             <SkeletonBox
                                 key={i}
                                 width={"90%"}
@@ -289,10 +295,13 @@ const styles = StyleSheet.create({
     infoContainer: { alignItems: "center", marginBottom: 10 },
     nameText: {
         fontFamily: FontFamily.SemiBold,
-        fontSize: 24,
+        fontSize: 22,
         color: colors.text,
         fontWeight: "600",
-        lineHeight: 32,
+        marginHorizontal:8,
+        textAlign: 'center',
+        flexWrap: "wrap", 
+
     },
     emailText: {
         fontFamily: FontFamily.Medium,

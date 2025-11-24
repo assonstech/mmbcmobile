@@ -1,40 +1,40 @@
 import { useEffect } from 'react';
 import { OneSignal, LogLevel } from 'react-native-onesignal';
 
-const ONE_SIGNAL_APP_ID = '1525beea-619c-44b2-89d1-94a139d8bf2f'; // Your App ID
+const ONE_SIGNAL_APP_ID = '1525beea-619c-44b2-89d1-94a139d8bf2f'; // Replace with your actual OneSignal App ID
 
 export const useNotification = () => {
   useEffect(() => {
+    // Enable verbose logging (remove in production)
     OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
-    const initializeOneSignal = async (attempt = 1) => {
-      try {
-        OneSignal.initialize(ONE_SIGNAL_APP_ID);
 
-        // Request permissions
-        await OneSignal.Notifications.requestPermission(false);
+    // Initialize OneSignal
+    OneSignal.initialize(ONE_SIGNAL_APP_ID);
 
-        // Optional: Event listeners
-        OneSignal.Notifications.addEventListener('received', notification => {
-          console.log('Notification received:', notification);
-        });
+    // Prompt for push notifications (optional, can remove after testing)
+    OneSignal.Notifications.requestPermission(false);
 
-        OneSignal.Notifications.addEventListener('opened', result => {
-          console.log('Notification opened:', result);
-        });
-
-        console.log('OneSignal initialized successfully');
-      } catch (err) {
-        console.warn(`OneSignal initialization failed, attempt ${attempt}:`, err);
-        // Retry up to 3 times with delay
-        if (attempt < 3) {
-          setTimeout(() => initializeOneSignal(attempt + 1), 3000);
-        } else {
-          console.error('Failed to initialize OneSignal after multiple attempts');
-        }
+    // Optional: Handle notification received while app is in foreground
+    const foregroundHandler = OneSignal.Notifications.addEventListener(
+      'received',
+      notification => {
+        console.log('Notification received:', notification);
       }
-    };
+    );
 
-    initializeOneSignal();
+    // Optional: Handle notification opened
+    const openedHandler = OneSignal.Notifications.addEventListener(
+      'opened',
+      result => {
+        console.log('Notification opened:', result);
+      }
+    );
+
+    // Cleanup listeners on unmount
+    return () => {
+      foregroundHandler?.remove();
+      openedHandler?.remove();
+    };
   }, []);
 };

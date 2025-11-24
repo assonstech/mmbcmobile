@@ -21,6 +21,7 @@ import OrganizationChart from './src/screens/OrganizationChart'
 import SignUpScreen from './src/screens/RegisterScreen'
 import GuestDetailScreen from './src/screens/GuestDetailScreen'
 import NetworkErrorScreen from './src/screens/NetworkErrorScreen'
+
 import { navigationRef } from './src/common/NavigationService';
 
 
@@ -28,6 +29,7 @@ import MainTabs from './src/screens/MainTabs';
 import DarkColors from './src/colors/dark';
 import Screen from './src/utils/Screen';
 import { useNotification } from "./src/notifications/useNotification";
+import BenefitScreen from './src/screens/BenfitScreen';
 
 
 
@@ -89,7 +91,7 @@ export default function App() {
           <Stack.Screen name={Screen.SignUp} component={SignUpScreen} />
           <Stack.Screen name={Screen.GuestDetail} component={GuestDetailScreen} />
           <Stack.Screen name={Screen.NetworkError} component={NetworkErrorScreen} />
-
+          <Stack.Screen name={Screen.Benefit} component={BenefitScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>

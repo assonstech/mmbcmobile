@@ -50,6 +50,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
   };
 
   // 🔹 Shimmer animation (vertical)
+  
   useEffect(() => {
     if (loading) {
       Animated.loop(
@@ -233,15 +234,16 @@ const styles = StyleSheet.create({
   },
   overlayContainer: {
     position: "absolute",
-    top: 60,
+    top: 60,            
     right: 65,
-    gap: 7,
     width: 190,
   },
   iconWithTextRow: {
     flexDirection: "row",
     alignItems: "flex-start",
+    marginBottom: 5,    
   },
+
   icon: {
     width: 18,
     height: 18,
@@ -252,13 +254,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
     color: colors.text,
-    lineHeight: 18,
     fontFamily: FontFamily.Bold,
   },
   profileImageContainer: {
     position: "absolute",
     top: 60,
-    left: 50,
+    left: Platform.OS === 'android' ? 40 : 50,
     width: 80,
     height: 80,
     borderRadius: 9999,
@@ -272,10 +273,10 @@ const styles = StyleSheet.create({
   },
   memberCodeText: {
     position: "absolute",
-    bottom:30,
-    left: 60,
-    fontFamily:FontFamily.Bold,
-    color:'#884600',
+    bottom: 30,
+    left: Platform.OS === 'android' ? 50 : 60,
+    fontFamily: FontFamily.Bold,
+    color: '#884600',
     overflow: "hidden",
   },
 

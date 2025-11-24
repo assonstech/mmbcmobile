@@ -25,7 +25,7 @@ const VerificationScreen = ({ navigation, route }) => {
   const { email, isFromLogin, token, isDefaultPassword } = route.params || {};
   const [otp, setOtp] = useState("");
   const [isValidOtp, setIsValidOtp] = useState(false);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(300); // 5 minutes = 300 seconds
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
@@ -54,6 +54,7 @@ const VerificationScreen = ({ navigation, route }) => {
     }
     return () => clearInterval(interval);
   }, [timer]);
+
 
   const handleResend = async () => {
     if (!canResend || loading) return;
@@ -93,6 +94,15 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  const formatTimer = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min.toString().padStart(2, "0")}:${sec
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+
   const resendOTP = async () => {
     try {
       setLoadingText("Sending OTP...");
@@ -100,7 +110,7 @@ const VerificationScreen = ({ navigation, route }) => {
       fadeInOverlay();
       const response = await sendOTP(email);
       if (response?.success) {
-        setTimer(60);
+        setTimer(300);
         setCanResend(false);
         showToast("OTP resent successfully ✅", "success");
       } else {
@@ -180,7 +190,7 @@ const VerificationScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         ) : (
           <Text style={[styles.resendLink, { opacity: 0.6 }]}>
-            Resend in {timer}s
+            Resend in {formatTimer(timer)}
           </Text>
         )}
       </View>
