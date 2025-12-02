@@ -48,20 +48,28 @@ export default function LoginScreen() {
 
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  const fadeInOverlay = () => Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-  const fadeOutOverlay = () => Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+  const fadeInOverlay = () =>
+    Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+
+  const fadeOutOverlay = () =>
+    Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
 
   // Animate logo and form on mount
   useEffect(() => {
     const timeout = setTimeout(() => {
       Animated.parallel([
-        Animated.spring(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, useNativeDriver: true }),
+        Animated.timing(logoPosition, {
+          toValue: -SCREEN_HEIGHT / 3.2,
+          duration: 300,
+          useNativeDriver: true,
+        }),
         Animated.spring(logoScale, { toValue: 0.65, useNativeDriver: true }),
         Animated.timing(formPosition, { toValue: 70, duration: 500, useNativeDriver: true }),
         Animated.timing(formOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
         Animated.timing(secondLogoOpacity, { toValue: 0.5, duration: 500, useNativeDriver: true }),
       ]).start();
     }, 700);
+
     return () => clearTimeout(timeout);
   }, []);
 
@@ -77,26 +85,56 @@ export default function LoginScreen() {
     }, [])
   );
 
-  // Keyboard event listeners
+  // ----------------------------
+  // FIX: Samsung Keyboard Issue
+  // ----------------------------
+
+  const handleKeyboardShow = () => {
+    Animated.parallel([
+      Animated.timing(logoPosition, {
+        toValue: -SCREEN_HEIGHT / 3.2,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 0.5,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleKeyboardHide = () => {
+    Animated.parallel([
+      Animated.timing(logoPosition, {
+        toValue: -SCREEN_HEIGHT / 3.2,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 0.65,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', () => {
-      Animated.parallel([
-        Animated.timing(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, duration: 300, useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 0.5, duration: 300, useNativeDriver: true }),
-      ]).start();
-    });
-    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', () => {
-      Animated.parallel([
-        Animated.timing(logoPosition, { toValue: -SCREEN_HEIGHT / 3.8, duration: 300, useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 0.65, duration: 300, useNativeDriver: true }),
-      ]).start();
-    });
+    const show1 = Keyboard.addListener("keyboardWillShow", handleKeyboardShow);
+    const show2 = Keyboard.addListener("keyboardDidShow", handleKeyboardShow);
+
+    const hide1 = Keyboard.addListener("keyboardWillHide", handleKeyboardHide);
+    const hide2 = Keyboard.addListener("keyboardDidHide", handleKeyboardHide);
+
     return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
+      show1.remove();
+      show2.remove();
+      hide1.remove();
+      hide2.remove();
     };
   }, []);
 
+  // Login logic
   const handleLogin = useCallback(async () => {
     Keyboard.dismiss();
     setLoading(true);
@@ -116,24 +154,44 @@ export default function LoginScreen() {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      if (status !== "Approved") {
-        setAlertMessage("Your account is not approved yet.");
-        setAlertVisible(true);
-        return;
+      // if (status !== "Approved") {
+      //   setAlertMessage("Your account is not approved yet.");
+      //   setAlertVisible(true);
+      //   return;
+      // }
+
+      // if (!(now >= start && now <= end)) {
+      //   setAlertMessage("Your account is currently inactive. Please contact support.");
+      //   setAlertVisible(true);
+      //   return;
+      // }
+      switch (status) {
+        case "Approved":
+          // continue normally
+          break;
+
+        case "Deleted":
+          setAlertMessage("Invalid email or password");
+          setAlertVisible(true);
+          return;
+
+        default:
+          setAlertMessage("Your account is not approved yet.");
+          setAlertVisible(true);
+          return;
       }
 
-      if (!(now >= start && now <= end)) {
-        setAlertMessage("Your account is currently inactive. Please contact support.");
-        setAlertVisible(true);
-        return;
-      }
 
       const token = res.data?.token;
       const isDefaultPassword = res.data?.isDefaultPassword;
 
       const response = await sendOTP(email);
       if (response?.success) {
-        navigation.navigate(Screen.VerificationScreen, { email, token: token, isDefaultPassword });
+        navigation.navigate(Screen.VerificationScreen, {
+          email,
+          token,
+          isDefaultPassword,
+        });
       } else {
         setAlertMessage(response?.message || "Failed to send OTP. Please check your email");
         setAlertVisible(true);
@@ -150,11 +208,12 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : "height"}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
-          {/* Background logo overlay */}
+
+          {/* Background big logo */}
           <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
             <Image
               source={require('../../src/assets/images/appLogo.png')}
@@ -162,7 +221,7 @@ export default function LoginScreen() {
             />
           </Animated.View>
 
-          {/* Animated main logo */}
+          {/* Main animated logo */}
           <Animated.View
             style={{
               position: 'absolute',
@@ -182,7 +241,7 @@ export default function LoginScreen() {
             />
           </Animated.View>
 
-          {/* Scrollable form */}
+          {/* Scrollable login form */}
           <ScrollView
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 50 }}
             keyboardShouldPersistTaps="handled"
@@ -206,6 +265,7 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
               />
+
               <DefaultTextInput
                 label="Password"
                 placeholder="Enter your password"
@@ -215,12 +275,11 @@ export default function LoginScreen() {
               />
 
               <View>
-                <DefaultButton
-                  title="Login"
-                  onPress={handleLogin}
-                  disabled={loading}
-                />
-                <TouchableOpacity onPress={() => navigation.navigate(Screen.ForgotPassword, { isFromLogin: true })}>
+                <DefaultButton title="Login" onPress={handleLogin} disabled={loading} />
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate(Screen.ForgotPassword, { isFromLogin: true })}
+                >
                   <Text style={[styles.body, { alignSelf: 'center', marginVertical: 8 }]}>
                     Forgot your password?
                   </Text>
@@ -229,7 +288,7 @@ export default function LoginScreen() {
             </Animated.View>
           </ScrollView>
 
-          {/* Alert modal */}
+          {/* Alert */}
           <CustomAlertModal
             visible={alertVisible}
             message={alertMessage}
@@ -237,7 +296,7 @@ export default function LoginScreen() {
             onConfirm={() => setAlertVisible(false)}
           />
 
-          {/* Loading overlay */}
+          {/* Loader overlay */}
           {loading && (
             <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
               <View style={styles.loaderBox}>

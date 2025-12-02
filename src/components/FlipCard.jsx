@@ -50,7 +50,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
   };
 
   // 🔹 Shimmer animation (vertical)
-  
+
   useEffect(() => {
     if (loading) {
       Animated.loop(
@@ -146,28 +146,31 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
           ]}
         >
           <Image source={frontImage} style={styles.image} />
-          <View style={styles.profileImageContainer}>
-            <Image
-              source={{ uri: getFullImageUrl(info?.companyOrIndividualImage) }}
-              style={styles.profileImage}
-            />
+          <View style={styles.backOverlay}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={{ uri: getFullImageUrl(info?.companyOrIndividualImage) }}
+                style={styles.profileImage}
+              />
 
+            </View>
+            <Text style={styles.memberCodeText}>{info?.memberCode}</Text>
+
+
+            <View style={styles.overlayContainer}>
+              {overlayItems.map((item, index) => (
+                <View key={index} style={styles.iconWithTextRow}>
+                  <Image
+                    source={item.icon}
+                    style={styles.icon}
+                    tintColor={colors.text}
+                  />
+                  <Text style={styles.iconText}>{item.text}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-          <Text style={styles.memberCodeText}>{info?.memberCode}</Text>
 
-
-          <View style={styles.overlayContainer}>
-            {overlayItems.map((item, index) => (
-              <View key={index} style={styles.iconWithTextRow}>
-                <Image
-                  source={item.icon}
-                  style={styles.icon}
-                  tintColor={colors.text}
-                />
-                <Text style={styles.iconText}>{item.text}</Text>
-              </View>
-            ))}
-          </View>
 
         </Animated.View>
 
@@ -234,14 +237,14 @@ const styles = StyleSheet.create({
   },
   overlayContainer: {
     position: "absolute",
-    top: 60,            
-    right: 65,
+    top: 25,
+    right: -130,
     width: 190,
   },
   iconWithTextRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 5,    
+    marginBottom: 5,
   },
 
   icon: {
@@ -258,8 +261,8 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     position: "absolute",
-    top: 60,
-    left: Platform.OS === 'android' ? 40 : 50,
+    top: 30,
+    right: Platform.OS === 'android' ? 75 : 75,
     width: 80,
     height: 80,
     borderRadius: 9999,
@@ -273,8 +276,8 @@ const styles = StyleSheet.create({
   },
   memberCodeText: {
     position: "absolute",
-    bottom: 30,
-    left: Platform.OS === 'android' ? 50 : 60,
+    top: 120,
+    right: Platform.OS === 'android' ? 80 : 80,
     fontFamily: FontFamily.Bold,
     color: '#884600',
     overflow: "hidden",
@@ -342,7 +345,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: FontFamily.Medium,
   },
-
 
 });
 

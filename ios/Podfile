@@ -22,6 +22,7 @@ target 'MMBC' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+  
 
   post_install do |installer|
     react_native_post_install(
@@ -30,6 +31,16 @@ target 'MMBC' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    installer.pods_project.targets.each do |target|
+  if target.name == 'hermes-engine' || target.name.include?('hermes')
+    target.build_configurations.each do |config|
+      config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'   # FIX
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
+    end
+  end
+end
+
   end
 end
 

@@ -142,6 +142,9 @@ const MoreScreen = ({ navigation }) => {
             case "Benefits & Affiliation Programs":
                 navigation.navigate(Screen.Benefit);
                 break;
+            case "Delete account":
+                navigation.navigate(Screen.DeleteAccount);
+                break;
             default:
                 console.log("No navigation defined for:", label);
         }
@@ -154,7 +157,9 @@ const MoreScreen = ({ navigation }) => {
         { label: "About Us", icon: require("../../src/assets/icons/note.png") },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
         { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
-        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/profileIcon.png") },
+        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png") },
+        { label: "Delete account", icon: require("../../src/assets/icons/delete.png") },
+
 
     ];
 
@@ -261,7 +266,7 @@ const styles = StyleSheet.create({
     logoContainer: { alignItems: "center" },
     backgroundLogo: { width: 270, height: 270, resizeMode: "contain" },
     cardContainer: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         flex: 1,
         marginTop: Platform.OS === "android" ? "19%" : "23%",
         borderTopLeftRadius: 24,
@@ -298,9 +303,9 @@ const styles = StyleSheet.create({
         fontSize: 22,
         color: colors.text,
         fontWeight: "600",
-        marginHorizontal:8,
+        marginHorizontal: Platform.OS === 'android' ? 8 : 16,
         textAlign: 'center',
-        flexWrap: "wrap", 
+        flexWrap: "wrap",
 
     },
     emailText: {

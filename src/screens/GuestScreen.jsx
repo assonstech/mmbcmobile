@@ -37,6 +37,13 @@ const GuestScreen = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [isMemberInclude, setIsMemberInclude] = useState(!!initialMemberInclude);
+    const [activeGuests, setActiveGuests] = useState(1);
+    const [isFormValid, setIsFormValid] = useState(false);
+
+    useEffect(() => {
+        setIsFormValid(validateGuests());
+    }, [guests, activeGuests]);
+
 
     useEffect(() => {
         if (Array.isArray(guestData) && guestData.length > 0) setIsUpdateMode(true);
@@ -47,12 +54,32 @@ const GuestScreen = ({ navigation, route }) => {
         const updatedGuests = [...guests];
         updatedGuests[index][field] = value;
         setGuests(updatedGuests);
+
+        if (index + 1 > activeGuests) {
+            setActiveGuests(index + 1);
+        }
     };
 
-    const handleAddGuest = () => {
-        if (guests.length >= 3) return; // Limit to 3 guests
-        setGuests([...guests, { name: "", email: "", phone: "" }]);
+    const validateGuests = () => {
+        return guests.slice(0, activeGuests).every(
+            g => g.name.trim() !== "" &&
+                g.email.trim() !== "" &&
+                g.phone.trim() !== ""
+        );
     };
+
+
+
+    const handleAddGuest = () => {
+        if (guests.length >= 3) return;
+
+        const newTotal = guests.length + 1;
+
+        setGuests([...guests, { name: "", email: "", phone: "" }]);
+
+        setActiveGuests(newTotal);
+    };
+
 
 
     const handleRemoveGuest = (index) => {
@@ -133,13 +160,13 @@ const GuestScreen = ({ navigation, route }) => {
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <SafeAreaView style={styles.container}>
                 <HeaderWithActions
                     onBackPress={() => navigation.goBack()}
-                    showNext={!loading}
-                    buttonText={isUpdateMode ? "Update" : "Next"}
+                    showNext={!loading && isFormValid}
+                    buttonText={isUpdateMode ? "Update" : "Register"}
                     onNextPress={handleNextPress}
                 />
 

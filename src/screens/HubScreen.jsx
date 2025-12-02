@@ -18,21 +18,32 @@ import { timeAgo } from "../utils/timeHelper";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import CustomDatePicker from "../components/CustomDatePicker";
 import { useFocusEffect } from "@react-navigation/native";
+import { da } from "date-fns/locale";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const HubScreen = () => {
+    const LIMIT = 10;
+
     const [posts, setPosts] = useState([]);
     const [allPosts, setAllPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    // 🔥 Pagination states
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
 
-    const loadPosts = async () => {
+    const loadPosts = async (pageNumber = 1, append = false) => {
         try {
-            const data = await fetchKnowledgePosts();
+            const data = await fetchKnowledgePosts(pageNumber, LIMIT);
+            console.log("data",data)
+
             const formattedData = data?.map(item => ({
                 id: item.id.toString(),
                 name: item.createdBy || "Admin",
@@ -41,8 +52,21 @@ const HubScreen = () => {
                 description: item.content,
                 image: item.image ? { uri: getFullImageUrl(item.image) } : null,
             })) || [];
-            setPosts(formattedData);
-            setAllPosts(formattedData);
+
+            if (append) {
+                setPosts(prev => [...prev, ...formattedData]);
+                setAllPosts(prev => [...prev, ...formattedData]);
+            } else {
+                setPosts(formattedData);
+                setAllPosts(formattedData);
+            }
+
+            if (formattedData.length < LIMIT) {
+                setHasMore(false); // no more pages
+            } else {
+                setHasMore(true);
+            }
+
         } catch (err) {
             console.log("Error fetching posts:", err);
         }
@@ -53,31 +77,48 @@ const HubScreen = () => {
             let isActive = true;
 
             const fetchData = async () => {
-                if (isActive) setLoading(true);
-                await loadPosts();
-                if (isActive) setLoading(false);
+                if (isActive) {
+                    setLoading(true);
+                    setPage(1);
+                    await loadPosts(1, false);
+                    setLoading(false);
+                }
             };
 
             fetchData();
 
-            return () => {
-                isActive = false;
-            };
+            return () => { isActive = false; };
         }, [])
     );
 
+    // 🔄 Pull to refresh
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await loadPosts();
+        setPage(1);
+        await loadPosts(1, false);
         setRefreshing(false);
+        setHasMore(true);
     }, []);
 
-    // ✅ New unified filter function
+    // 🔥 Load next page when user scrolls
+    const loadMore = async () => {
+        if (loadingMore || !hasMore) return;
+
+        setLoadingMore(true);
+        const nextPage = page + 1;
+        await loadPosts(nextPage, true);
+        setPage(nextPage);
+        setLoadingMore(false);
+    };
+
+    // --------------- Filters ----------------
     const applyFilters = (date) => {
         let filtered = allPosts;
         if (date) {
             const selectedStr = date.toDateString();
-            filtered = filtered.filter(post => new Date(post.createdAt).toDateString() === selectedStr);
+            filtered = filtered.filter(
+                post => new Date(post.createdAt).toDateString() === selectedStr
+            );
         }
         setPosts(filtered);
     };
@@ -94,6 +135,7 @@ const HubScreen = () => {
 
     return (
         <SafeAreaView style={{ flex: 1, paddingBottom: 80, backgroundColor: colors.bottomTabbarLabelColor }}>
+
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerText}>HR Working Groups</Text>
@@ -101,7 +143,6 @@ const HubScreen = () => {
                     <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
                         {!selectedDate && (
                             <Image source={require("../assets/icons/endo-sort.png")} style={styles.filterIcon} />
-
                         )}
                         <Text style={styles.filterText}>{formatDateText(selectedDate)}</Text>
                         {selectedDate && (
@@ -113,14 +154,14 @@ const HubScreen = () => {
                 </View>
             </View>
 
-            {/* Custom Modal Date Picker */}
+            {/* Date Picker */}
             <CustomDatePicker
                 visible={showDatePicker}
                 initialDate={selectedDate || new Date()}
                 onCancel={() => setShowDatePicker(false)}
                 onConfirm={(date) => {
                     setSelectedDate(date);
-                    applyFilters(date);  // Apply date filter here
+                    applyFilters(date);
                     setShowDatePicker(false);
                 }}
             />
@@ -144,12 +185,22 @@ const HubScreen = () => {
                     ItemSeparatorComponent={() => <View style={styles.separator} />}
                     refreshing={refreshing}
                     onRefresh={onRefresh}
+                    
+                    // 🔥 Pagination trigger
+                    onEndReached={loadMore}
+                    onEndReachedThreshold={0.3}
+
+                    // 🔥 Bottom loader
+                    ListFooterComponent={
+                        loadingMore ? <Text style={{ textAlign: "center", color: colors.text, padding: 16 }}>loading...</Text> : null
+                    }
                 />
             )}
 
         </SafeAreaView>
     );
 };
+
 
 export default HubScreen;
 

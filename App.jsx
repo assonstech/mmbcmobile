@@ -21,6 +21,8 @@ import OrganizationChart from './src/screens/OrganizationChart'
 import SignUpScreen from './src/screens/RegisterScreen'
 import GuestDetailScreen from './src/screens/GuestDetailScreen'
 import NetworkErrorScreen from './src/screens/NetworkErrorScreen'
+import DeleteAccountScreen from './src/screens/DeleteAccountScreen'
+
 
 import { navigationRef } from './src/common/NavigationService';
 
@@ -30,6 +32,7 @@ import DarkColors from './src/colors/dark';
 import Screen from './src/utils/Screen';
 import { useNotification } from "./src/notifications/useNotification";
 import BenefitScreen from './src/screens/BenfitScreen';
+import Orientation from 'react-native-orientation-locker';
 
 
 
@@ -38,6 +41,10 @@ const isDarkMode = true;
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState(null);
+
+  useEffect(() => {
+    Orientation.lockToPortrait();
+  }, []);
 
   useNotification()
 
@@ -92,6 +99,8 @@ export default function App() {
           <Stack.Screen name={Screen.GuestDetail} component={GuestDetailScreen} />
           <Stack.Screen name={Screen.NetworkError} component={NetworkErrorScreen} />
           <Stack.Screen name={Screen.Benefit} component={BenefitScreen} />
+          <Stack.Screen name={Screen.DeleteAccount} component={DeleteAccountScreen} />
+
 
         </Stack.Navigator>
       </NavigationContainer>

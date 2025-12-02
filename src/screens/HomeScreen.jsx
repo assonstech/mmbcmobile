@@ -301,7 +301,7 @@ const HomeScreen = ({ navigation }) => {
             />
 
             {/* Flip Card */}
-            <View style={{ paddingTop: 16 }}>
+            <View style={{ paddingTop: 16,marginHorizontal:16 }}>
                 <FlipCard
                     frontImage={require("../assets/images/Front.png")}
                     backImage={require("../assets/images/Back.png")}

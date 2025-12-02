@@ -5,6 +5,7 @@ import axios from "axios";
 export const fetchMemberInfo = async () => {
   try {
     const res = await http.get("/member/info");
+    console.log("fefe", res)
 
     if (res?.success && res?.data) {
       return {
@@ -121,36 +122,36 @@ export const deleteImage = async (filename) => {
 };
 
 export const changeProfileImage = async (file, fieldName = "profileImage") => {
-    if (!file) return null;
+  if (!file) return null;
 
-    try {
-        let uri = file.path || file.uri;
-        if (!uri) return null;
+  try {
+    let uri = file.path || file.uri;
+    if (!uri) return null;
 
-        // iOS fix
-        if (Platform.OS === "ios" && uri.startsWith("file://")) {
-            uri = uri.replace("file://", "");
-        }
-
-        const formData = new FormData();
-        formData.append(fieldName, {
-            uri,
-            type: file.mime || "image/jpeg",
-            name: file.filename || `upload_${Date.now()}.jpg`,
-        });
-
-        const res = await http.post(`/member/single-upload/${fieldName}`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (res?.data?.success) return res.data;
-
-        console.error("Upload failed. API response:", res?.data);
-        return null;
-    } catch (err) {
-        console.error("Profile image upload failed:", err);
-        return null;
+    // iOS fix
+    if (Platform.OS === "ios" && uri.startsWith("file://")) {
+      uri = uri.replace("file://", "");
     }
+
+    const formData = new FormData();
+    formData.append(fieldName, {
+      uri,
+      type: file.mime || "image/jpeg",
+      name: file.filename || `upload_${Date.now()}.jpg`,
+    });
+
+    const res = await http.post(`/member/single-upload/${fieldName}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    if (res?.data?.success) return res.data;
+
+    console.error("Upload failed. API response:", res?.data);
+    return null;
+  } catch (err) {
+    console.error("Profile image upload failed:", err);
+    return null;
+  }
 };
 
 export const getTownshipsByCode = async (code) => {
@@ -183,15 +184,26 @@ export const createMember = async (postBody) => {
 }
 
 async function validateEmailZeroBounce(email) {
-    const apiKey = "12cb3b1fdc9e48caabea46ce34c40537"; 
-    const url = `https://api.zerobounce.net/v2/validate?api_key=${apiKey}&email=${email}`;
+  const apiKey = "12cb3b1fdc9e48caabea46ce34c40537";
+  const url = `https://api.zerobounce.net/v2/validate?api_key=${apiKey}&email=${email}`;
 
-    try {
-        const res = await axios.get(url);
-        return res.data;
-    } catch (err) {
-        console.error("ZeroBounce error:", err);
-        return null;
-    }
+  try {
+    const res = await axios.get(url);
+    return res.data;
+  } catch (err) {
+    console.error("ZeroBounce error:", err);
+    return null;
+  }
 }
+
+export const updateAcccountDeleteStatus = async (postBody) => {
+  try {
+    const res = await http.put('/member/status/update', postBody);
+    console.log("Account delete response:", res);
+    return res;
+  } catch (err) {
+    console.error('Error deleteing account:', err);
+    return { success: false, message: err.status };
+  }
+};
 

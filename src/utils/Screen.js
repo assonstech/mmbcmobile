@@ -21,7 +21,9 @@ const Screen = {
   SignUp: 'signup',
   GuestDetail: 'guestDetail',
   NetworkError: 'networkError',
-  Benefit: 'benefit'
+  Benefit: 'benefit',
+  DeleteAccount: 'deleteAccount',
+
 
 };
 

@@ -242,8 +242,6 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     marginTop: 32,
-    justifyContent: "center",
-    alignItems: "center",
     alignSelf: "center",
   },
   otpBox: {
@@ -253,7 +251,7 @@ const styles = StyleSheet.create({
     width: 53,
     justifyContent: "center",
     height: 56,
-    marginHorizontal: 6,
+    marginHorizontal: 2,
   },
   otpText: {
     fontSize: 20,
