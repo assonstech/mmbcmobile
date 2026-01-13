@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
     FlatList,
     Image,
@@ -25,6 +25,8 @@ const colors = isDarkMode ? DarkColors : LightColors;
 
 const HubScreen = () => {
     const LIMIT = 10;
+    const listRef = useRef(null); // ✅
+
 
     const [posts, setPosts] = useState([]);
     const [allPosts, setAllPosts] = useState([]);
@@ -39,10 +41,24 @@ const HubScreen = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
 
+    const handleToggleExpand = useCallback((id, isExpanded, index) => {
+        if (!isExpanded) {
+            // wait one frame so collapse layout is applied
+            requestAnimationFrame(() => {
+                listRef.current?.scrollToIndex({
+                    index,
+                    animated: true,
+                    viewPosition: 0, // 0 = top of screen
+                    viewOffset: 8,  // add small padding (adjust)
+                });
+            });
+        }
+    }, []);
+
     const loadPosts = async (pageNumber = 1, append = false) => {
         try {
             const data = await fetchKnowledgePosts(pageNumber, LIMIT);
-            console.log("data",data)
+            console.log("data", data)
 
             const formattedData = data?.map(item => ({
                 id: item.id.toString(),
@@ -177,15 +193,16 @@ const HubScreen = () => {
                 </View>
             ) : (
                 <FlatList
+                    ref={listRef}
                     data={posts}
-                    renderItem={({ item }) => <KnowledgeCard item={item} />}
+                    renderItem={({ item, index }) => <KnowledgeCard item={item} index={index} onToggleExpand={handleToggleExpand} />}
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingVertical: 16 }}
                     ItemSeparatorComponent={() => <View style={styles.separator} />}
                     refreshing={refreshing}
                     onRefresh={onRefresh}
-                    
+
                     // 🔥 Pagination trigger
                     onEndReached={loadMore}
                     onEndReachedThreshold={0.3}
@@ -194,6 +211,19 @@ const HubScreen = () => {
                     ListFooterComponent={
                         loadingMore ? <Text style={{ textAlign: "center", color: colors.text, padding: 16 }}>loading...</Text> : null
                     }
+                    onScrollToIndexFailed={(info) => {
+                        // fallback: try approximate offset then retry
+                        const offset = info.averageItemLength * info.index;
+                        listRef.current?.scrollToOffset({ offset, animated: true });
+                        setTimeout(() => {
+                            listRef.current?.scrollToIndex({
+                                index: info.index,
+                                animated: true,
+                                viewPosition: 0,
+                                viewOffset: 12,
+                            });
+                        }, 50);
+                    }}
                 />
             )}
 

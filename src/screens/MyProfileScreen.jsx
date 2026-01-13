@@ -16,14 +16,16 @@ import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
-import { changeProfileImage, getMemberTypes, updateCompanyOrIndividualImage } from "../controllers/MemberController";
+import {
+    changeProfileImage,
+    getMemberTypes,
+    updateCompanyOrIndividualImage,
+} from "../controllers/MemberController";
 import ImageViewing from "react-native-image-viewing";
-import CustomBottomSheet from "../components/CustomBottomSheet"
-import ImagePicker from 'react-native-image-crop-picker';
+import CustomBottomSheet from "../components/CustomBottomSheet";
+import ImagePicker from "react-native-image-crop-picker";
 import CustomAlertModal from "../components/CustomAlertModal";
 import Screen from "../utils/Screen";
-
-
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -61,12 +63,15 @@ const MyProfileScreen = ({ navigation, route }) => {
     const [memberTypeText, setMemberTypeText] = useState("");
     const [loading, setLoading] = useState(true);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
-    const [imageBottomSheetVisible, setImageBottomSheetVisible] = useState(false);
+    const [imageBottomSheetVisible, setImageBottomSheetVisible] =
+        useState(false);
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
     const overlayOpacity = useRef(new Animated.Value(0)).current;
     const [uploading, setUploading] = useState(false);
-    const [alertAction, setAlertAction] = useState(() => () => setAlertVisible(false));
+    const [alertAction, setAlertAction] = useState(
+        () => () => setAlertVisible(false)
+    );
 
     const fadeInOverlay = () => {
         Animated.timing(overlayOpacity, {
@@ -84,40 +89,43 @@ const MyProfileScreen = ({ navigation, route }) => {
         }).start();
     };
 
-
-    const requestAndroidPermissions = async () => {
-        if (Platform.OS === "android") {
-            try {
-                const granted = await PermissionsAndroid.requestMultiple([
-                    PermissionsAndroid.PERMISSIONS.CAMERA,
-                    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE, // for Android < 13
-                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES, // Android 13+
-                ]);
-
-                const allGranted = Object.values(granted).every(
-                    (status) => status === PermissionsAndroid.RESULTS.GRANTED
-                );
-
-                if (!allGranted) {
-                    return false;
-                }
-
-                return true;
-            } catch (err) {
-                console.warn(err);
-                return false;
-            }
-        }
-        return true;
-    };
-
-    const handleChooseImage = async (type) => {
-        const hasPermission = await requestAndroidPermissions();
-        if (!hasPermission) return;
+    /**
+     * ✅ Camera-only permission (no storage/media permissions)
+     */
+    const requestCameraPermission = async () => {
+        if (Platform.OS !== "android") return true;
 
         try {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.CAMERA,
+                {
+                    title: "Camera Permission",
+                    message:
+                        "We need access to your camera to take a profile photo.",
+                    buttonPositive: "OK",
+                    buttonNegative: "Cancel",
+                }
+            );
+
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        } catch (err) {
+            console.warn(err);
+            return false;
+        }
+    };
+
+    /**
+     * ✅ Uses camera permission only when needed
+     * ✅ Gallery uses picker without READ_* storage permissions
+     */
+    const handleChooseImage = async (type) => {
+        try {
             let image;
+
             if (type === "camera") {
+                const hasPermission = await requestCameraPermission();
+                if (!hasPermission) return;
+
                 image = await ImagePicker.openCamera({
                     width: 300,
                     height: 300,
@@ -126,6 +134,7 @@ const MyProfileScreen = ({ navigation, route }) => {
                     compressImageQuality: 0.8,
                 });
             } else {
+                // Gallery: no extra storage permissions needed
                 image = await ImagePicker.openPicker({
                     width: 300,
                     height: 300,
@@ -138,19 +147,26 @@ const MyProfileScreen = ({ navigation, route }) => {
             if (!image?.path) return; // User cancelled or invalid
 
             setUploading(true);
-            setImageBottomSheetVisible(false)
+            setImageBottomSheetVisible(false);
             fadeInOverlay();
 
             const formData = new FormData();
             formData.append("profileImage", {
-                uri: Platform.OS === "ios" ? image.path.replace("file://", "") : image.path,
+                uri:
+                    Platform.OS === "ios"
+                        ? image.path.replace("file://", "")
+                        : image.path,
                 type: image.mime,
                 name: image.filename || `upload_${Date.now()}.jpg`,
             });
 
-            const res = await HttpSerivce.post("/member/single-upload/profileImage", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            const res = await HttpSerivce.post(
+                "/member/single-upload/profileImage",
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
+            );
 
             if (res?.profileImage) {
                 await updateCompanyOrIndividualImage(res.profileImage);
@@ -158,38 +174,43 @@ const MyProfileScreen = ({ navigation, route }) => {
                 setAlertMessage("Profile image updated successfully!");
                 setAlertVisible(true);
 
-                setAlertAction(() => () => {
-                    setAlertVisible(false);
-                    navigation.reset({
-                        index: 0,
-                        routes: [
-                            {
-                                name: Screen.MainTabs,
-                                state: {
-                                    index: 2,
-                                    routes: [
-                                        { name: "Home" },
-                                        { name: "Hub" },
-                                        { name: "More" },
-                                    ],
+                setAlertAction(
+                    () => () => {
+                        setAlertVisible(false);
+                        navigation.reset({
+                            index: 0,
+                            routes: [
+                                {
+                                    name: Screen.MainTabs,
+                                    state: {
+                                        index: 2,
+                                        routes: [
+                                            { name: "Home" },
+                                            { name: "Hub" },
+                                            { name: "More" },
+                                        ],
+                                    },
                                 },
-                            },
-                        ],
-                    });
-                });
+                            ],
+                        });
+                    }
+                );
             } else {
                 setAlertMessage("Failed to upload image.");
                 setAlertVisible(true);
                 setAlertAction(() => () => setAlertVisible(false));
             }
-
         } catch (err) {
-            // Only show alert if it's not a user cancel
-            if (err?.message && err.message.toLowerCase().includes("cancel")) {
+            if (
+                err?.message &&
+                err.message.toLowerCase().includes("cancel")
+            ) {
                 console.log("User cancelled image picker");
             } else {
                 console.log("Image picking or upload error:", err);
-                setAlertMessage("An error occurred while uploading the image.");
+                setAlertMessage(
+                    "An error occurred while uploading the image."
+                );
                 setAlertVisible(true);
                 setAlertAction(() => () => setAlertVisible(false));
             }
@@ -199,19 +220,23 @@ const MyProfileScreen = ({ navigation, route }) => {
         }
     };
 
-
     useEffect(() => {
         const fetchMemberTypes = async () => {
             try {
                 const response = await getMemberTypes();
                 if (response?.data) {
                     const matchedType = response.data.find(
-                        (type) => type.memberTypeId === memberInfo.typeOfMembershipId
+                        (type) =>
+                            type.memberTypeId ===
+                            memberInfo.typeOfMembershipId
                     );
 
                     if (matchedType) {
-                        const text = `${matchedType.memberTypeName} ${matchedType.votingRights ? "- Voting Rights" : "- No Voting Rights"
-                            } (${matchedType.fees}/${matchedType.feePeriod})`;
+                        const text = `${matchedType.memberTypeName} ${
+                            matchedType.votingRights
+                                ? "- Voting Rights"
+                                : "- No Voting Rights"
+                        } (${matchedType.fees}/${matchedType.feePeriod})`;
                         setMemberTypeText(text);
                     } else {
                         setMemberTypeText("Unknown Member Type");
@@ -226,14 +251,13 @@ const MyProfileScreen = ({ navigation, route }) => {
 
         fetchMemberTypes();
     }, [memberInfo]);
-    // utils/formatDate.js
+
     const formatDateWithHyphen = (date) => {
         if (!date) return "-";
         const parsedDate = new Date(date);
         if (isNaN(parsedDate)) return "-";
         return parsedDate.toISOString().split("T")[0]; // YYYY-MM-DD
     };
-
 
     const infoFields = [
         { title: "Name", value: memberInfo.representiveName },
@@ -243,23 +267,55 @@ const MyProfileScreen = ({ navigation, route }) => {
         { title: "Member Position", value: memberInfo.representivePosition },
         { title: "Member NRC", value: memberInfo.memberNRC },
         { title: "Type of Membership", value: memberTypeText },
-        { title: "Start Date", value: formatDateWithHyphen(memberInfo.startDate) },
-        { title: "End Date", value: formatDateWithHyphen(memberInfo.endDate) },
-        { title: "Address", value: memberInfo.companyOrIndividualAddress },
-        { title: "Member Nationality", value: memberInfo.representiveNationality },
+        {
+            title: "Start Date",
+            value: formatDateWithHyphen(memberInfo.startDate),
+        },
+        {
+            title: "End Date",
+            value: formatDateWithHyphen(memberInfo.endDate),
+        },
+        {
+            title: "Address",
+            value: memberInfo.companyOrIndividualAddress,
+        },
+        {
+            title: "Member Nationality",
+            value: memberInfo.representiveNationality,
+        },
         { title: "EC Member", value: memberInfo.isBOD ? "Yes" : "No" },
         { title: "Owner Malaysia %", value: memberInfo.ownerMalaysia },
         { title: "Owner Myanmar %", value: memberInfo.ownerMyanmar },
-        { title: `Owner Other (${memberInfo.otherOwnerName}) %`, value: memberInfo.ownerOther },
+        {
+            title: `Owner Other (${memberInfo.otherOwnerName}) %`,
+            value: memberInfo.ownerOther,
+        },
         { title: "Applicant Name", value: memberInfo.applicantName },
-        { title: "Applicant Position", value: memberInfo.applicantPosition },
-        { title: "Application Date", value: formatDateWithHyphen(memberInfo.applicationDate) },
+        {
+            title: "Applicant Position",
+            value: memberInfo.applicantPosition,
+        },
+        {
+            title: "Application Date",
+            value: formatDateWithHyphen(
+                memberInfo.applicationDate
+            ),
+        },
         { title: "Website", value: memberInfo.website },
-        { title: "Nature of Business", value: memberInfo.natureOfBusiness },
+        {
+            title: "Nature of Business",
+            value: memberInfo.natureOfBusiness,
+        },
         { title: "Telephone", value: memberInfo.telephone },
         { title: "Owner Type", value: memberInfo.ownerType },
-        { title: "Date of Registration", value: memberInfo.dateOfRegistration },
-        { title: "Place of Registration", value: memberInfo.placeOfRegistration },
+        {
+            title: "Date of Registration",
+            value: memberInfo.dateOfRegistration,
+        },
+        {
+            title: "Place of Registration",
+            value: memberInfo.placeOfRegistration,
+        },
         { title: "WhatsApp", value: memberInfo.whatsApp },
     ];
 
@@ -280,14 +336,24 @@ const MyProfileScreen = ({ navigation, route }) => {
             {/* Profile Image Row */}
             <View style={styles.profileRow}>
                 {/* Profile Image */}
-                <TouchableOpacity onPress={() => setIsImageViewerVisible(true)}>
+                <TouchableOpacity
+                    onPress={() => setIsImageViewerVisible(true)}
+                >
                     {loading ? (
-                        <SkeletonBox width={130} height={130} borderRadius={65} />
+                        <SkeletonBox
+                            width={130}
+                            height={130}
+                            borderRadius={65}
+                        />
                     ) : (
                         <Image
                             source={
                                 memberInfo?.companyOrIndividualImage
-                                    ? { uri: getFullImageUrl(memberInfo.companyOrIndividualImage) }
+                                    ? {
+                                          uri: getFullImageUrl(
+                                              memberInfo.companyOrIndividualImage
+                                          ),
+                                      }
                                     : require("../../src/assets/images/avatar.png")
                             }
                             style={styles.profileImage}
@@ -297,8 +363,14 @@ const MyProfileScreen = ({ navigation, route }) => {
 
                 {/* Change Photo */}
                 {!loading && (
-                    <TouchableOpacity onPress={() => setImageBottomSheetVisible(true)}>
-                        <Text style={styles.changePhotoText}>Change Photo</Text>
+                    <TouchableOpacity
+                        onPress={() =>
+                            setImageBottomSheetVisible(true)
+                        }
+                    >
+                        <Text style={styles.changePhotoText}>
+                            Change Photo
+                        </Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -310,17 +382,32 @@ const MyProfileScreen = ({ navigation, route }) => {
                 contentContainerStyle={{ paddingBottom: 16 }}
             >
                 {infoFields.map((item, index) => (
-                    <InfoCard key={index} title={item.title} value={item.value} loading={loading} />
+                    <InfoCard
+                        key={index}
+                        title={item.title}
+                        value={item.value}
+                        loading={loading}
+                    />
                 ))}
             </ScrollView>
 
             {/* Image Viewer */}
-            <ImageViewing
-                images={[{ uri: getFullImageUrl(memberInfo.companyOrIndividualImage) }]}
-                imageIndex={0}
-                visible={isImageViewerVisible}
-                onRequestClose={() => setIsImageViewerVisible(false)}
-            />
+            {memberInfo?.companyOrIndividualImage && (
+                <ImageViewing
+                    images={[
+                        {
+                            uri: getFullImageUrl(
+                                memberInfo.companyOrIndividualImage
+                            ),
+                        },
+                    ]}
+                    imageIndex={0}
+                    visible={isImageViewerVisible}
+                    onRequestClose={() =>
+                        setIsImageViewerVisible(false)
+                    }
+                />
+            )}
 
             {/* Bottom Sheet */}
             <CustomBottomSheet
@@ -337,10 +424,15 @@ const MyProfileScreen = ({ navigation, route }) => {
                     style={styles.sheetButton}
                     onPress={() => handleChooseImage("gallery")}
                 >
-                    <Text style={styles.sheetButtonText}>Choose from Gallery</Text>
+                    <Text style={styles.sheetButtonText}>
+                        Choose from Gallery
+                    </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={[styles.sheetButton, { backgroundColor: "#ccc" }]}
+                    style={[
+                        styles.sheetButton,
+                        { backgroundColor: "#ccc" },
+                    ]}
                     onPress={() => setImageBottomSheetVisible(false)}
                 >
                     <Text style={styles.sheetButtonText}>Cancel</Text>
@@ -348,10 +440,14 @@ const MyProfileScreen = ({ navigation, route }) => {
             </CustomBottomSheet>
 
             {uploading && (
-                <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+                <Animated.View
+                    style={[styles.overlay, { opacity: overlayOpacity }]}
+                >
                     <View style={styles.loaderBox}>
                         <ActivityIndicator size="large" color="#fff" />
-                        <Text style={styles.loaderText}>Changing Profile Image...</Text>
+                        <Text style={styles.loaderText}>
+                            Changing Profile Image...
+                        </Text>
                     </View>
                 </Animated.View>
             )}
@@ -362,10 +458,8 @@ const MyProfileScreen = ({ navigation, route }) => {
                 confirmText="OK"
                 onConfirm={alertAction}
             />
-
-
         </SafeAreaView>
-    )
+    );
 };
 
 export default MyProfileScreen;
@@ -374,14 +468,14 @@ export default MyProfileScreen;
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     backButton: {
-        width: 40,           // fixed width
-        height: 40,          // fixed height
-        borderRadius: 20,    // half of width/height for circle
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: "#fff",
         justifyContent: "center",
         marginHorizontal: 16,
         marginTop: 30,
-        alignItems: "center", // center the icon
+        alignItems: "center",
         shadowColor: "#000",
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 2 },
@@ -399,7 +493,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: Platform.OS === "android" ? 20 : 30,
         marginHorizontal: 20,
-        gap: 16, // space between image and button
+        gap: 16,
     },
     profileImage: {
         width: 130,
@@ -410,29 +504,8 @@ const styles = StyleSheet.create({
         color: "#3B82F6",
         fontFamily: FontFamily.Medium,
         fontSize: 16,
-        textDecorationLine: 'underline'
+        textDecorationLine: "underline",
     },
-    infoContainer: { alignItems: "center", marginVertical: 16 },
-    nameText: {
-        fontFamily: FontFamily.SemiBold,
-        fontSize: 24,
-        fontWeight: "600",
-        color: colors.text,
-        lineHeight: 32,
-    },
-    emailText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        color: colors.loginAccountColor,
-        marginTop: 4,
-    },
-    phoneText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        color: colors.loginAccountColor,
-        marginTop: 2,
-    },
-
     scrollView: { flex: 1, marginTop: 20, paddingTop: 20 },
     infoCard: {
         padding: 16,
@@ -457,7 +530,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: colors.text,
     },
-
     sheetButton: {
         paddingVertical: 16,
         alignItems: "center",

@@ -70,8 +70,7 @@ const DeleteAccountScreen = () => {
                     routes: [{ name: Screen.Login }],
                 });
             } else if (response?.message && response.message.toString().includes("400")) {
-                // Message contains 404 -> email doesn't exist
-                setEmailError("Email not found. Please check and try again.");
+                setEmailError("Your mail doesn’t match your account.");
             } else {
                 setEmailError("Something went wrong.");
             }
@@ -183,7 +182,7 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     errorText: {
-        color: "red",
+        color: "#EF4444",
         fontSize: 14,
         marginTop: -8,
         marginBottom: 10,
