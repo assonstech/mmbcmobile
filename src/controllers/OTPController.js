@@ -1,6 +1,7 @@
 import http from '../common/HttpSerivce';
 
 export const sendOTP = async (email) => {
+    console.log("Sending OTP to email:", email);
     try {
         const res = await http.post('/otp/send', {
             email: email

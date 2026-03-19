@@ -186,6 +186,7 @@ export default function LoginScreen() {
       const isDefaultPassword = res.data?.isDefaultPassword;
 
       const response = await sendOTP(email);
+      console.log("OTP Response:", response);
       if (response?.success) {
         navigation.navigate(Screen.VerificationScreen, {
           email,

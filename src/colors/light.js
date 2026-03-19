@@ -13,9 +13,8 @@ const LightColors = {
   logoutButtonColor: "#EF4444",
   alertBgColor: "#FEF9C3",
   skeltonColor: '#E2E8F0',
-  ruleBackgroundColor: "#3B82F6"
-
-
+  ruleBackgroundColor: "#3B82F6",
+  backtoHomeborderColor: "#CBD5E1"
 
 
 };
