@@ -808,7 +808,6 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         paddingHorizontal: 24,
         paddingVertical: 24,
-        alignItems: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
@@ -837,7 +836,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#1A0000",
         marginBottom: 12,
-        textAlign: "center",
     },
 
     expiredDescription: {
@@ -846,7 +844,6 @@ const styles = StyleSheet.create({
         color: "#6F6582",
         marginBottom: 24,
         lineHeight: 24,
-        textAlign: "center",
     },
 
     expiredButton: {
