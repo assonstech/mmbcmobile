@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     Image,
     StyleSheet,
@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     Switch,
     KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
@@ -40,9 +41,17 @@ const GuestScreen = ({ navigation, route }) => {
     const [activeGuests, setActiveGuests] = useState(1);
     const [isFormValid, setIsFormValid] = useState(false);
 
+    const validateGuests = useCallback(() => {
+        return guests.slice(0, activeGuests).every(
+            g => g.name.trim() !== "" &&
+                g.email.trim() !== "" &&
+                g.phone.trim() !== ""
+        );
+    }, [activeGuests, guests]);
+
     useEffect(() => {
         setIsFormValid(validateGuests());
-    }, [guests, activeGuests]);
+    }, [validateGuests]);
 
 
     useEffect(() => {
@@ -58,14 +67,6 @@ const GuestScreen = ({ navigation, route }) => {
         if (index + 1 > activeGuests) {
             setActiveGuests(index + 1);
         }
-    };
-
-    const validateGuests = () => {
-        return guests.slice(0, activeGuests).every(
-            g => g.name.trim() !== "" &&
-                g.email.trim() !== "" &&
-                g.phone.trim() !== ""
-        );
     };
 
 

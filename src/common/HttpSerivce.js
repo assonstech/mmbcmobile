@@ -12,9 +12,13 @@ import Screen from '../utils/Screen';
 //   ? 'http://10.0.2.2:3000'
 //   : 'http://localhost:3000';
 
-const BASE_URL = 'https://assonstech-001-site2.ktempurl.com/api'
+// const BASE_URL = 'https://assonstech-001-site2.ktempurl.com/api'
 
-const BASE_Image_URL = 'https://assonstech-001-site2.ktempurl.com'
+// const BASE_Image_URL = 'https://assonstech-001-site2.ktempurl.com'
+
+const BASE_URL = 'http://assonstech-001-site6.ktempurl.com/api'
+const BASE_Image_URL = 'http://assonstech-001-site6.ktempurl.com/'
+
 
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
 const IS_DEFAULT_PASSWORD_KEY = 'IS_DEFAULT_PASSWORD'; // ✅ NEW KEY
@@ -23,7 +27,19 @@ const TIMEOUT = 15000;
 
 export const getFullImageUrl = (relativePath) => {
   if (!relativePath) return null;
-  return `${BASE_Image_URL}/uploads/${relativePath}`; // adjust "/uploads/" to your actual folder
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+
+  const cleanPath = relativePath.startsWith('/')
+    ? relativePath.slice(1)
+    : relativePath;
+
+  if (cleanPath.startsWith('uploads/')) {
+    return `${BASE_Image_URL}${cleanPath}`;
+  }
+
+  return `${BASE_Image_URL}uploads/${cleanPath}`;
 };
 
 const apiClient = axios.create({
@@ -49,6 +65,7 @@ apiClient.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+      console.log("token:", token);
       if (token) config.headers.Authorization = `Bearer ${token}`;
     } catch (e) { }
     return config;
@@ -65,7 +82,7 @@ apiClient.interceptors.response.use(
     }
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
-      navigate(Screen.Login);
+      navigate(Screen.Welcome);
     }
     return Promise.reject(error);
   }
@@ -77,7 +94,13 @@ const get = async (url, params = {}, config = {}) => {
     const res = await apiClient.get(url, { params, ...config });
     return res.data; // { success, message, data }
   } catch (err) {
-    return { success: false, message: err.message, data: null };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+      code: err.response?.status,
+      url: `${apiClient.defaults.baseURL}${url}`,
+      data: err.response?.data || null,
+    };
   }
 };
 
@@ -131,6 +154,10 @@ const setAccessToken = async (token) => {
   apiClient.defaults.headers.common.Authorization = token ? `Bearer ${token}` : undefined;
 };
 
+const getAccessToken = async () => {
+  return AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+};
+
 const removeAccessToken = async () => {
   await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
   delete apiClient.defaults.headers.common.Authorization;
@@ -159,6 +186,7 @@ export default {
   delete: del,
   upload,
   setAccessToken,
+  getAccessToken,
   removeAccessToken,
   setIsDefaultPassword,
   removeIsDefaultPassword,

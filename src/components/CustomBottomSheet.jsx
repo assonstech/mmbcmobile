@@ -24,7 +24,7 @@ export default function CustomBottomSheet({ visible, onClose, children }) {
       tension: 40,
       friction: 8,
     }).start();
-  }, [visible]);
+  }, [translateY, visible]);
 
   // Backdrop opacity
   const backdropOpacity = translateY.interpolate({

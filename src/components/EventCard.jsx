@@ -8,6 +8,10 @@ import { formattedPrice } from "../common/HttpSerivce";
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
+const formatEventPrice = (price) => (
+    price ? `${formattedPrice(price)} MMK` : "Free"
+);
+
 const EventCard = ({ item, onPress }) => {
     const [loading, setLoading] = useState(false);
 
@@ -39,9 +43,20 @@ const EventCard = ({ item, onPress }) => {
 
                 {/* Price Top-Right */}
                 <View style={styles.topRight}>
-                    <Text style={styles.priceText}>
-                        {item.price ? `${formattedPrice(item.price)} MMK` : 'Free' }
-                    </Text>
+                    {item.showNonMemberPrice ? (
+                        <>
+                            <Text style={styles.priceText}>
+                                Member: {formatEventPrice(item.memberPrice)}
+                            </Text>
+                            <Text style={styles.priceText}>
+                                Non-member: {formatEventPrice(item.nonMemberPrice)}
+                            </Text>
+                        </>
+                    ) : (
+                        <Text style={styles.priceText}>
+                            {formatEventPrice(item.price)}
+                        </Text>
+                    )}
                 </View>
 
                 {/* Description & Location Bottom-Left */}

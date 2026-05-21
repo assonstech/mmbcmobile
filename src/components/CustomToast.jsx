@@ -14,7 +14,7 @@ const CustomToast = ({ visible, message, type = "success", onHide }) => {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [visible]);
+  }, [onHide, opacity, visible]);
 
   if (!visible) return null;
 

@@ -18,7 +18,7 @@ const KnowledgeCardSkeleton = () => {
         useNativeDriver: true,
       })
     ).start();
-  }, []);
+  }, [shimmerAnim]);
 
   const translateX = shimmerAnim.interpolate({
     inputRange: [-1, 1],

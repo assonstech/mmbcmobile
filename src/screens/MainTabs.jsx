@@ -4,10 +4,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import HomeScreen from '../screens/HomeScreen';
 import HubScreen from '../screens/HubScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 import MoreScreen from '../screens/MoreScreen';
 
 import HomeIcon from '../assets/icons/home.png';
 import ProfileIcon from '../assets/icons/slider-vertical.png';
+import NotificationIcon from '../assets/icons/notification.png';
 import SettingIcon from '../assets/icons/endo-category.png';
 import DarkColors from '../colors/dark';
 import LightColors from '../colors/light';
@@ -42,6 +44,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
             ? HomeIcon
             : route.name === 'Hub'
             ? ProfileIcon
+            : route.name === 'Noti'
+            ? NotificationIcon
             : SettingIcon;
 
         return (
@@ -54,12 +58,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
             <View
               style={[
                 styles.tabInner,
-                { 
-                  paddingHorizontal:35,
-                  paddingVertical:10,
-                  backgroundColor: isFocused ? colors.button : 'transparent',
-                  borderRadius: 9999, 
-                },
+                isFocused && styles.tabInnerFocused,
               ]}
             >
               <Image
@@ -115,8 +114,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    minWidth: 64,
     overflow: 'hidden', 
+  },
+  tabInnerFocused: {
+    minWidth: 88,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: colors.button,
+    borderRadius: 9999,
   },
   icon: {
     width: 24,
@@ -132,6 +139,7 @@ export default function MyTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Hub" component={HubScreen} />
+      <Tab.Screen name="Noti" component={NotificationScreen} />
       <Tab.Screen name="More" component={MoreScreen} />
     </Tab.Navigator>
   );

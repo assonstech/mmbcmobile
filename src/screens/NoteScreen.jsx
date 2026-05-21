@@ -15,7 +15,6 @@ import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import ImageViewing from "react-native-image-viewing";
-import { fetchCEO } from "../controllers/MemberController";
 import { fetchNote } from "../controllers/NoteController";
 import { getFullImageUrl } from "../common/HttpSerivce";
 
@@ -49,25 +48,25 @@ const MyProfileScreen = ({ navigation }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch CEO info
                 setLoading(true); // start loading
 
-                const ceoRes = await fetchCEO();
-                if (ceoRes.success && ceoRes.data.length > 0) {
-                    const ceoData = ceoRes.data[0];
-                    setCeo({
-                        name: ceoData.representiveName,
-                        profileImage: ceoData.companyOrIndividualImage,
-                        position: ceoData.ecPosition || "President",
-                    });
-                }
-
-                // Fetch Note info
+                // Fetch public CEO/note info. Do not call member-only APIs here,
+                // because non-member tokens can be rejected and trigger logout.
                 const noteRes = await fetchNote();
                 if (noteRes) {
-                    setNoteMessage(noteRes.noteMessage || "");
+                    const noteData = noteRes.data || noteRes;
+                    const ceoData = Array.isArray(noteData.CEO)
+                        ? noteData.CEO[0]
+                        : noteData.CEO;
+
+                    setCeo({
+                        name: ceoData?.representiveName || ceoData?.name || "",
+                        profileImage: ceoData?.companyOrIndividualImage || ceoData?.photoPath || "",
+                        position: ceoData?.ecPosition || ceoData?.position || "President",
+                    });
+                    setNoteMessage(noteData.noteMessage || "");
                     setSecretaries(
-                        noteRes.Secretaries?.map((sec, index) => ({
+                        noteData.Secretaries?.map((sec, index) => ({
                             id: index.toString(), // ensure unique key
                             name: sec.name,
                             phone: sec.phone,
@@ -300,15 +299,6 @@ const styles = StyleSheet.create({
         height: "100%",
         resizeMode: "cover", // fill card
     },
-    skeletonCard: {
-        marginRight: 16,
-        width: 260,
-        height: 180,
-        borderRadius: 20,
-        backgroundColor: "#E0E0E0",
-    },
-
-
     overlay: {
         position: "absolute",
         bottom: -1,

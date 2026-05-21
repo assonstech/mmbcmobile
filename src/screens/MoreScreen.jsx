@@ -17,6 +17,10 @@ import Screen from "../utils/Screen";
 import { fetchMemberInfo } from "../controllers/MemberController";
 import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
 import { useFocusEffect } from "@react-navigation/native";
+import { useUserType } from "../utils/useUserType";
+import { removeNonMemberProfile } from "../utils/auth";
+import MemberDirectoryIcon from "../assets/icons/memberdirectory.png";
+import PartnerIcon from "../assets/icons/partner.png";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -54,6 +58,7 @@ const SkeletonBox = ({ width, height, borderRadius = 6, style }) => (
 
 /* ---------------------------- Main MoreScreen ---------------------------- */
 const MoreScreen = ({ navigation }) => {
+    const { isMember, isNonMember, loading: userTypeLoading } = useUserType();
     const [memberInfo, setMemberInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -68,9 +73,10 @@ const MoreScreen = ({ navigation }) => {
         try {
             await HttpSerivce.removeAccessToken("token");
             await HttpSerivce.removeIsDefaultPassword();
+            await removeNonMemberProfile();
             navigation.reset({
                 index: 0,
-                routes: [{ name: Screen.Login }],
+                routes: [{ name: Screen.Welcome }],
             });
         } catch (error) {
             console.error("Logout error:", error);
@@ -97,6 +103,8 @@ const MoreScreen = ({ navigation }) => {
             let isActive = true;
 
             const fetchData = async () => {
+                if (userTypeLoading) return;
+
                 setLoading(true);
                 try {
                     const response = await fetchMemberInfo();
@@ -115,7 +123,7 @@ const MoreScreen = ({ navigation }) => {
             return () => {
                 isActive = false; // cleanup to avoid setting state on unmounted component
             };
-        }, [])
+        }, [userTypeLoading])
     );
 
 
@@ -132,6 +140,12 @@ const MoreScreen = ({ navigation }) => {
                 break;
             case "About Us":
                 navigation.navigate(Screen.Note);
+                break;
+            case "MOU Partners":
+                navigation.navigate(Screen.MouPartners);
+                break;
+            case "Member directory":
+                navigation.navigate(Screen.MemberDirectory);
                 break;
             case "Change Password":
                 navigation.navigate(Screen.ChangePassword);
@@ -150,11 +164,13 @@ const MoreScreen = ({ navigation }) => {
         }
     };
 
-    const menuItems = [
+    const memberMenuItems = [
         { label: "My Profile", icon: require("../../src/assets/icons/profileIcon.png") },
         { label: "Change Password", icon: require("../../src/assets/icons/key.png") },
         { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
         { label: "About Us", icon: require("../../src/assets/icons/note.png") },
+        { label: "MOU Partners", icon: PartnerIcon },
+        { label: "Member directory", icon: MemberDirectoryIcon },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
         { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
         { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png") },
@@ -162,6 +178,21 @@ const MoreScreen = ({ navigation }) => {
 
 
     ];
+
+    const nonMemberMenuItems = [
+        { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
+        { label: "About Us", icon: require("../../src/assets/icons/note.png") },
+        { label: "MOU Partners", icon: PartnerIcon },
+        { label: "Member directory", icon: MemberDirectoryIcon },
+        { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
+    ];
+
+    const menuItems = isNonMember ? nonMemberMenuItems : memberMenuItems;
+    const displayName = isNonMember
+        ? memberInfo?.companyOrIndividualName || memberInfo?.representiveName || "-"
+        : memberInfo?.representiveName || memberInfo?.companyOrIndividualName || "-";
+    const displayEmail = memberInfo?.email || "-";
+    const displayPhone = memberInfo?.phone || memberInfo?.telephone || "-";
 
     return (
         <SafeAreaView
@@ -208,10 +239,11 @@ const MoreScreen = ({ navigation }) => {
                     ) : (
                         <>
                             <Text style={styles.nameText} numberOfLines={2}>
-                                {memberInfo?.representiveName || "-"}
+                                {displayName}
                             </Text>
-                            <Text style={styles.emailText}>{memberInfo?.email || "-"}</Text>
-                            <Text style={styles.phoneText}>{memberInfo?.telephone || "-"}</Text>
+                            {isNonMember && <Text style={styles.userTypeText}>Non-member</Text>}
+                            <Text style={styles.emailText}>{displayEmail}</Text>
+                            <Text style={styles.phoneText}>{displayPhone}</Text>
                         </>
                     )}
                 </View>
@@ -319,6 +351,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: colors.loginAccountColor,
         marginTop: 2,
+    },
+    userTypeText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        color: colors.signUpTextColor,
+        marginTop: 4,
     },
     scrollView: { flex: 1, marginTop: 16 },
     card: {

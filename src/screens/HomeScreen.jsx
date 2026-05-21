@@ -27,12 +27,14 @@ import { fetchMemberInfo } from "../controllers/MemberController";
 import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import Screen from "../utils/Screen";
 import CustomDatePicker from "../components/CustomDatePicker";
+import { useUserType } from "../utils/useUserType";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const HomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
+    const { isMember, isNonMember, loading: userTypeLoading } = useUserType();
     const containerOffset = Platform.OS === "android" ? 260 : 300;
     const translateY = useRef(new Animated.Value(containerOffset)).current;
 
@@ -50,7 +52,7 @@ const HomeScreen = ({ navigation }) => {
 
 
     const lastTranslateY = useRef(containerOffset);
-    const chips = ["All", "In-person", "Online", "Registered", "Free"];
+    const chips = ["All", "In-person", "Online", "Registered", "Free", "IsPaid"];
 
     // ------------------- PanResponder -------------------
     const panResponder = useRef(
@@ -80,33 +82,45 @@ const HomeScreen = ({ navigation }) => {
     ).current;
 
     // ------------------- Data Loading -------------------
-    const loadMemberInfo = async () => {
+    const loadMemberInfo = useCallback(async () => {
         try {
             const response = await fetchMemberInfo();
             if (response.success) setMemberInfo(response.data);
         } catch (error) {
             console.error("Error fetching member info:", error);
         }
-    };
+    }, []);
 
     // 🕒 helper to convert 24-hour time to 12-hour AM/PM
-    const formatTimeTo12Hour = (timeString) => {
+    const formatTimeTo12Hour = useCallback((timeString) => {
         if (!timeString) return "";
         const [hour, minute] = timeString.split(":").map(Number);
         const period = hour >= 12 ? "PM" : "AM";
         const hour12 = hour % 12 || 12;
         return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
-    };
+    }, []);
 
 
-    const loadEvents = async () => {
+    const loadEvents = useCallback(async () => {
         try {
             const response = await fetchAllEvents();
+            console.log("events response:", JSON.stringify(response.data[0]));
             if (response.success) {
-                const formattedEvents = response.data.map((item) => {
+                const visibleEvents = response.data.filter((item) => {
+                    const accessType = (item.accessType || "").toUpperCase();
+                    return isMember || accessType !== "MEMBER";
+                });
+
+                const formattedEvents = visibleEvents.map((item) => {
                     const eventDate = new Date(item.eventDate);
                     const formattedStart = formatTimeTo12Hour(item.startTime);
                     const formattedEnd = formatTimeTo12Hour(item.endTime);
+                    const memberPrice = item.eventFee ?? 0;
+                    const nonMemberPrice = item.nonMemberFee;
+                    const visiblePrice =
+                        isNonMember && nonMemberPrice !== null && nonMemberPrice !== undefined
+                            ? nonMemberPrice
+                            : memberPrice;
 
                     return {
                         id: item.eventid?.toString() ?? "",
@@ -122,10 +136,14 @@ const HomeScreen = ({ navigation }) => {
                             .toString()
                             .padStart(2, "0")}/${eventDate.getFullYear()}`,  // 👈 formatted dd/mm/yyyy
                         time: `${formattedStart} - ${formattedEnd}`,
-                        price: item.eventFee ?? 0,
+                        price: visiblePrice,
+                        memberPrice,
+                        nonMemberPrice,
+                        accessType: item.accessType,
                         eventType: item.eventType ?? "inPerson",
                         rule: item.eventRule ?? "",
                         isRegistered: item.isRegistered ?? 0,
+                        isPaid: item.isPaid ?? false,
                     };
                 });
                 setEvents(formattedEvents);
@@ -134,10 +152,12 @@ const HomeScreen = ({ navigation }) => {
         } catch (err) {
             console.log("Error fetching events:", err);
         }
-    };
+    }, [formatTimeTo12Hour, isMember, isNonMember]);
 
     useEffect(() => {
         const checkDefaultPassword = async () => {
+            if (!isMember) return;
+
             try {
                 const isDefaultPassword = await HttpSerivce.getIsDefaultPassword();
                 if (isDefaultPassword) {
@@ -160,16 +180,21 @@ const HomeScreen = ({ navigation }) => {
         };
 
         checkDefaultPassword();
-    }, []); // 👈 runs only once
+    }, [isMember]); // 👈 runs only once for members
 
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
 
             const fetchData = async () => {
+                if (userTypeLoading) return;
+
                 setLoading(true);
                 try {
-                    await Promise.all([loadEvents(), loadMemberInfo()]);
+                    await Promise.all([
+                        loadEvents(),
+                        isMember ? loadMemberInfo() : Promise.resolve(setMemberInfo(null)),
+                    ]);
                 } catch (err) {
                     console.error(err);
                 } finally {
@@ -182,7 +207,7 @@ const HomeScreen = ({ navigation }) => {
             return () => {
                 isActive = false; // cleanup to prevent state update on unmounted screen
             };
-        }, [])
+        }, [isMember, loadEvents, loadMemberInfo, userTypeLoading])
     );
 
     // ------------------- Back Handler -------------------
@@ -198,7 +223,7 @@ const HomeScreen = ({ navigation }) => {
     );
 
     // ------------------- Filtering -------------------
-    const applyFilters = (date = selectedDate, chip = selectedChip) => {
+    const applyFilters = useCallback((date = selectedDate, chip = selectedChip) => {
         let filtered = events;
 
         if (date) {
@@ -219,13 +244,16 @@ const HomeScreen = ({ navigation }) => {
             case 4:
                 filtered = filtered.filter(item => item.price === 0);
                 break;
+            case 5:
+                filtered = filtered.filter(item => item.isPaid === true);
+                break;
 
             default:
                 break;
         }
 
         setFilteredEvents(filtered);
-    };
+    }, [events, selectedChip, selectedDate]);
 
     const clearDateFilter = () => {
         setSelectedDate(null);
@@ -234,7 +262,7 @@ const HomeScreen = ({ navigation }) => {
 
     useEffect(() => {
         applyFilters();
-    }, [selectedDate, selectedChip, events]);
+    }, [applyFilters]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -265,7 +293,7 @@ const HomeScreen = ({ navigation }) => {
 
     const onClickEvent = useCallback((item) => {
         navigation.navigate(Screen.EventDetailScreen, { item });
-    });
+    }, [navigation]);
 
     const renderEventItem = ({ item }) => (
         <EventCard item={item} onPress={() => onClickEvent(item)} />
@@ -301,19 +329,36 @@ const HomeScreen = ({ navigation }) => {
             />
 
             {/* Flip Card */}
-            <View style={{ paddingTop: 16,marginHorizontal:16 }}>
-                <FlipCard
-                    frontImage={require("../assets/images/Front.png")}
-                    backImage={require("../assets/images/Back.png")}
-                    info={memberInfo}
-                    loading={loading}
-                />
-            </View>
+            {isMember && (
+                <View style={{ paddingTop: 16, marginHorizontal: 16 }}>
+                    <FlipCard
+                        frontImage={require("../assets/images/Front.png")}
+                        backImage={require("../assets/images/Back.png")}
+                        info={memberInfo}
+                        loading={loading}
+                    />
+                </View>
+            )}
+
+            {isNonMember && (
+                <View style={styles.nonMemberLogoContainer}>
+                    <Image
+                        source={require("../assets/images/appLogo.png")}
+                        style={styles.nonMemberLogo}
+                        resizeMode="contain"
+                    />
+                </View>
+            )}
 
             {/* Animated Card */}
             <Animated.View style={[styles.cardContainer, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
                 <View style={[styles.header, { paddingTop: (Platform.OS === 'ios' && isExpanded) && insets.top }]}>
-                    <Text style={styles.headerText}>Welcome to MMBC</Text>
+                    <View>
+                        <Text style={styles.headerText}>Welcome to MMBC</Text>
+                        {isNonMember && (
+                            <Text style={styles.userTypeText}>Non-member</Text>
+                        )}
+                    </View>
                     <View style={styles.filterContainer}>
                         <TouchableOpacity style={styles.filterButton} onPress={() => setShowDatePicker(true)}>
                             {!selectedDate && (
@@ -399,6 +444,15 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
+    nonMemberLogoContainer: {
+        paddingTop: 40,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    nonMemberLogo: {
+        width: 174,
+        height: 174,
+    },
     cardContainer: {
         position: "absolute",
         left: 0,
@@ -428,6 +482,13 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         lineHeight: 28,
         color: colors.text,
+    },
+    userTypeText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        fontWeight: "500",
+        color: colors.loginAccountColor,
+        marginTop: 2,
     },
     filterContainer: { flexDirection: "row", alignItems: "center" },
     filterButton: {

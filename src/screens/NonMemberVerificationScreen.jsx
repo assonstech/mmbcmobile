@@ -1,50 +1,45 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
   ActivityIndicator,
   Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OtpInput } from "react-native-otp-entry";
+import HeaderWithActions from "../components/HeaderWithActions";
+import CustomAlertModal from "../components/CustomAlertModal";
+import CustomToast from "../components/CustomToast";
+import { FontFamily } from "../styles/fontStyle";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
-import { FontFamily } from "../styles/fontStyle";
-import HeaderWithActions from "../components/HeaderWithActions";
-import { OtpInput } from "react-native-otp-entry";
 import Screen from "../utils/Screen";
-import { sendOTP, verifyOTP } from "../controllers/OTPController";
-import CustomToast from "../components/CustomToast";
+import {
+  sendNonMemberOTP,
+  verifyNonMemberOTP,
+} from "../controllers/NonMemberController";
 import HttpSerivce from "../common/HttpSerivce";
+import { setNonMemberProfile } from "../utils/auth";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
-const VerificationScreen = ({ navigation, route }) => {
-  const { email, isFromLogin, token, isDefaultPassword } = route.params || {};
+const NonMemberVerificationScreen = ({ navigation, route }) => {
+  const { email, representiveName, phone } = route.params || {};
   const [otp, setOtp] = useState("");
-  const [isValidOtp, setIsValidOtp] = useState(false);
-  const [timer, setTimer] = useState(300); // 5 minutes = 300 seconds
+  const [timer, setTimer] = useState(300);
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
-
-
-  // Toast state
+  const [successVisible, setSuccessVisible] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
-
-  // Fade animation for overlay
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  const handleOtpChange = (value) => {
-    setOtp(value);
-    setIsValidOtp(value?.length === 6);
-  };
-
-  useEffect(() => {
+  React.useEffect(() => {
     let interval;
     if (timer > 0) {
       interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
@@ -55,77 +50,8 @@ const VerificationScreen = ({ navigation, route }) => {
     return () => clearInterval(interval);
   }, [timer]);
 
+  const isValidOtp = otp?.length === 6;
 
-  const handleResend = async () => {
-    if (!canResend || loading) return;
-    await resendOTP();
-  };
-
-  const verifyOtp = async () => {
-    try {
-      setLoadingText("Verifying OTP...");
-      setLoading(true);
-      fadeInOverlay();
-      const response = await verifyOTP(email, otp);
-
-      if (response?.success) {
-
-        if (token) {
-          console.log("token",token)
-          await HttpSerivce.setAccessToken(token);
-          await HttpSerivce.setIsDefaultPassword(isDefaultPassword); // or your value
-          navigation.reset({
-            index: 0,
-            routes: [{ name: Screen.MainTabs }],
-          });
-          return;
-        }
-        navigation.navigate(Screen.ResetPasswordScreen, {
-          email: email,
-          isFromLogin: isFromLogin
-        });
-      } else {
-        showToast("Invalid OTP code" || "Failed to resend OTP ❌", "error");
-      }
-    } catch (err) {
-      showToast("Network error. Please try again.", "error");
-    } finally {
-      fadeOutOverlay();
-      setLoading(false);
-    }
-  };
-
-  const formatTimer = (seconds) => {
-    const min = Math.floor(seconds / 60);
-    const sec = seconds % 60;
-    return `${min.toString().padStart(2, "0")}:${sec
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-
-  const resendOTP = async () => {
-    try {
-      setLoadingText("Sending OTP...");
-      setLoading(true);
-      fadeInOverlay();
-      const response = await sendOTP(email);
-      if (response?.success) {
-        setTimer(300);
-        setCanResend(false);
-        showToast("OTP resent successfully ✅", "success");
-      } else {
-        showToast(response?.message || "Failed to resend OTP ❌", "error");
-      }
-    } catch (err) {
-      showToast("Network error. Please try again.", "error");
-    } finally {
-      fadeOutOverlay();
-      setLoading(false);
-    }
-  };
-
-  // Overlay fade-in/out animation
   const fadeInOverlay = () => {
     Animated.timing(overlayOpacity, {
       toValue: 1,
@@ -148,12 +74,72 @@ const VerificationScreen = ({ navigation, route }) => {
     setToastVisible(true);
   };
 
+  const formatTimer = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  const handleResend = async () => {
+    if (!canResend || loading) return;
+
+    try {
+      setLoadingText("Sending OTP...");
+      setLoading(true);
+      fadeInOverlay();
+      const response = await sendNonMemberOTP(email);
+      if (response?.success) {
+        setTimer(300);
+        setCanResend(false);
+        showToast("OTP resent successfully", "success");
+      } else {
+        showToast(response?.message || "Failed to resend OTP", "error");
+      }
+    } finally {
+      fadeOutOverlay();
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!isValidOtp || loading) return;
+
+    try {
+      setLoadingText("Verifying OTP...");
+      setLoading(true);
+      fadeInOverlay();
+      const response = await verifyNonMemberOTP({
+        email,
+        otp: otp.trim(),
+        representiveName,
+        phone,
+      });
+
+      const responseData = response?.data || {};
+      const token = responseData?.token || response?.token;
+      const isVerified = response?.success === true || !!token;
+
+      if (isVerified) {
+        if (token) {
+          await HttpSerivce.setAccessToken(token);
+        }
+        await setNonMemberProfile(responseData);
+        setSuccessVisible(true);
+      } else {
+        showToast(response?.message || "Invalid OTP code", "error");
+      }
+    } finally {
+      fadeOutOverlay();
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <HeaderWithActions
         onBackPress={() => navigation.goBack()}
-        showNext={true}
-        nextDisabled={!isValidOtp}
+        showNext
+        nextDisabled={!isValidOtp || loading}
         onNextPress={verifyOtp}
       />
 
@@ -163,12 +149,11 @@ const VerificationScreen = ({ navigation, route }) => {
         {email || "your email"}
       </Text>
 
-      {/* OTP Input */}
       <View style={styles.otpContainer}>
         <OtpInput
           numberOfDigits={6}
           focusColor={colors.text}
-          onTextChange={handleOtpChange}
+          onTextChange={setOtp}
           textInputProps={{
             keyboardType: "numeric",
             maxLength: 6,
@@ -180,7 +165,6 @@ const VerificationScreen = ({ navigation, route }) => {
         />
       </View>
 
-      {/* Resend Code Section */}
       <View style={styles.resendContainer}>
         <Text style={styles.resendText}>Didn’t receive the code? </Text>
         {canResend ? (
@@ -196,8 +180,6 @@ const VerificationScreen = ({ navigation, route }) => {
         )}
       </View>
 
-
-      {/* ✅ Custom Toast */}
       <CustomToast
         visible={toastVisible}
         message={toastMessage}
@@ -205,7 +187,20 @@ const VerificationScreen = ({ navigation, route }) => {
         onHide={() => setToastVisible(false)}
       />
 
-      {/* ✅ Loading Overlay */}
+      <CustomAlertModal
+        visible={successVisible}
+        title="Verified"
+        message="Continue as non-member successful."
+        confirmText="OK"
+        onConfirm={() => {
+          setSuccessVisible(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: Screen.MainTabs }],
+          });
+        }}
+      />
+
       {loading && (
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
           <View style={styles.loaderBox}>
@@ -218,7 +213,7 @@ const VerificationScreen = ({ navigation, route }) => {
   );
 };
 
-export default VerificationScreen;
+export default NonMemberVerificationScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -260,32 +255,27 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.Medium,
   },
   resendContainer: {
+    marginTop: 32,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 24, // adjust spacing if needed
+    flexWrap: "wrap",
   },
   resendText: {
-    fontFamily: FontFamily.Medium,
     color: colors.loginAccountColor,
-    fontSize: 16,
-    fontWeight: "600",
+    fontFamily: FontFamily.Medium,
+    fontSize: 15,
   },
   resendLink: {
     color: colors.signUpTextColor,
     fontFamily: FontFamily.SemiBold,
-    marginLeft: 4, // small gap between text and button
+    fontSize: 15,
   },
-  // ✅ Overlay styles
   overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 999,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   loaderBox: {
     backgroundColor: "rgba(0,0,0,0.7)",

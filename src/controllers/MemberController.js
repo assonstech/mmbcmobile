@@ -1,6 +1,7 @@
 import { ht } from "date-fns/locale";
 import http from "../common/HttpSerivce";
 import axios from "axios";
+import { Platform } from "react-native";
 
 export const fetchMemberInfo = async () => {
   try {
@@ -111,11 +112,11 @@ export const deleteImage = async (filename) => {
   if (!filename) return;
 
   try {
-    const res = await api.delete("member/member-upload", {
+    const res = await http.delete("member/member-upload", {
       data: { filename }  // Axios requires "data" for DELETE body
     });
 
-    return res.data;
+    return res;
   } catch (err) {
     console.error("Error deleting image:", err);
   }
@@ -206,4 +207,3 @@ export const updateAcccountDeleteStatus = async (postBody) => {
     return { success: false, message: err.status };
   }
 };
-

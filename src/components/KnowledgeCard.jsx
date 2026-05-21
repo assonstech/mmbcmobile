@@ -1,6 +1,6 @@
 // KnowledgeCard.js
 import React, { memo, useState } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { ActivityIndicator, View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { FontFamily } from "../styles/fontStyle";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
@@ -12,6 +12,7 @@ const colors = isDarkMode ? DarkColors : LightColors;
 const KnowledgeCard = ({ item, index, onToggleExpand }) => {
   const [expanded, setExpanded] = useState(false);
   const [imageVisible, setImageVisible] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const initial = item?.name ? item.name.charAt(0).toUpperCase() : "?";
 
   const toggleExpand = () => {
@@ -48,8 +49,20 @@ const KnowledgeCard = ({ item, index, onToggleExpand }) => {
       )}
 
       {item.image && (
-        <TouchableOpacity onPress={() => setImageVisible(true)}>
-          <Image source={item.image} style={styles.postImage} />
+        <TouchableOpacity style={styles.postImageWrapper} onPress={() => setImageVisible(true)}>
+          {imageLoading && (
+            <ActivityIndicator
+              size="large"
+              color="#0000ff"
+              style={styles.imageLoader}
+            />
+          )}
+          <Image
+            source={item.image}
+            style={styles.postImage}
+            onLoadStart={() => setImageLoading(true)}
+            onLoadEnd={() => setImageLoading(false)}
+          />
         </TouchableOpacity>
       )}
 
@@ -81,5 +94,20 @@ const styles = StyleSheet.create({
   time: { fontFamily: FontFamily.Medium, fontSize: 12, color: colors.loginAccountColor, lineHeight: 18, fontWeight: "500" },
   description: { fontFamily: FontFamily.Regular, fontSize: 16, color: colors.text, lineHeight: 24, fontWeight: "400" },
   seeMore: { fontFamily: FontFamily.SemiBold, fontSize: 16, color: colors.signUpTextColor, lineHeight: 24, marginTop: 4 },
-  postImage: { width: "100%", height: 203, borderRadius: 10, resizeMode: "cover", marginTop: 10 },
+  postImageWrapper: {
+    width: "100%",
+    height: 203,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: 10,
+    backgroundColor: colors.itemSeparateColor,
+  },
+  postImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  imageLoader: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -12 }, { translateY: -12 }],
+    zIndex: 1,
+  },
 });

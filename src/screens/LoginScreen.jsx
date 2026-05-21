@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Animated,
+  Dimensions,
   Image,
   Text,
   View,
-  Dimensions,
   StyleSheet,
   TouchableWithoutFeedback,
   Keyboard,
@@ -23,13 +23,12 @@ import DefaultButton from '../components/DefaultButton';
 import { FontFamily } from '../styles/fontStyle';
 import Screen from '../utils/Screen';
 import { login } from '../controllers/LoginController';
-import { exitApp } from '@logicwind/react-native-exit-app';
 import CustomAlertModal from '../components/CustomAlertModal';
 import { sendOTP } from '../controllers/OTPController';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -40,99 +39,27 @@ export default function LoginScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
-  const logoPosition = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(1)).current;
-  const formPosition = useRef(new Animated.Value(50)).current;
-  const formOpacity = useRef(new Animated.Value(0)).current;
-  const secondLogoOpacity = useRef(new Animated.Value(0)).current;
-
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  const fadeInOverlay = () =>
+  const fadeInOverlay = useCallback(() => {
     Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+  }, [overlayOpacity]);
 
-  const fadeOutOverlay = () =>
+  const fadeOutOverlay = useCallback(() => {
     Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
-
-  // Animate logo and form on mount
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(logoPosition, {
-          toValue: -SCREEN_HEIGHT / 3.2,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(logoScale, { toValue: 0.65, useNativeDriver: true }),
-        Animated.timing(formPosition, { toValue: 70, duration: 500, useNativeDriver: true }),
-        Animated.timing(formOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-        Animated.timing(secondLogoOpacity, { toValue: 0.5, duration: 500, useNativeDriver: true }),
-      ]).start();
-    }, 700);
-
-    return () => clearTimeout(timeout);
-  }, []);
+  }, [overlayOpacity]);
 
   // Handle back button
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        exitApp();
+        navigation.navigate(Screen.Welcome);
         return true;
       };
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [])
+    }, [navigation])
   );
-
-  // ----------------------------
-  // FIX: Samsung Keyboard Issue
-  // ----------------------------
-
-  const handleKeyboardShow = () => {
-    Animated.parallel([
-      Animated.timing(logoPosition, {
-        toValue: -SCREEN_HEIGHT / 3.2,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: 0.5,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handleKeyboardHide = () => {
-    Animated.parallel([
-      Animated.timing(logoPosition, {
-        toValue: -SCREEN_HEIGHT / 3.2,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: 0.65,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  useEffect(() => {
-    const show1 = Keyboard.addListener("keyboardWillShow", handleKeyboardShow);
-    const show2 = Keyboard.addListener("keyboardDidShow", handleKeyboardShow);
-
-    const hide1 = Keyboard.addListener("keyboardWillHide", handleKeyboardHide);
-    const hide2 = Keyboard.addListener("keyboardDidHide", handleKeyboardHide);
-
-    return () => {
-      show1.remove();
-      show2.remove();
-      hide1.remove();
-      hide2.remove();
-    };
-  }, []);
 
   // Login logic
   const handleLogin = useCallback(async () => {
@@ -204,7 +131,7 @@ export default function LoginScreen() {
       fadeOutOverlay();
       setLoading(false);
     }
-  }, [email, password, navigation]);
+  }, [email, fadeInOverlay, fadeOutOverlay, navigation, password]);
 
   return (
     <KeyboardAvoidingView
@@ -215,49 +142,43 @@ export default function LoginScreen() {
         <View style={{ flex: 1, backgroundColor: colors.background }}>
 
           {/* Background big logo */}
-          <Animated.View style={[styles.secondLogoContainer, { opacity: secondLogoOpacity }]}>
+          <View style={styles.secondLogoContainer}>
             <Image
               source={require('../../src/assets/images/appLogo.png')}
               style={{ width: 361, height: 361, resizeMode: 'contain', opacity: 0.1 }}
             />
-          </Animated.View>
+          </View>
 
-          {/* Main animated logo */}
-          <Animated.View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              justifyContent: 'center',
-              alignItems: 'center',
-              transform: [{ translateY: logoPosition }, { scale: logoScale }],
-              zIndex: 0,
-            }}
-          >
+          {/* Main logo */}
+          <View style={styles.logoContainer}>
             <Image
               source={require('../../src/assets/images/appLogo.png')}
-              style={{ width: '80%', height: '80%', resizeMode: 'contain' }}
+              style={styles.logo}
             />
-          </Animated.View>
+          </View>
 
           {/* Scrollable login form */}
           <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 50 }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 0 }}
             keyboardShouldPersistTaps="handled"
           >
-            <Animated.View
-              style={[styles.formContainer, { opacity: formOpacity, transform: [{ translateY: formPosition }] }]}
-            >
+            <View style={styles.formContainer}>
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={styles.backButton}
+                onPress={() => navigation.navigate(Screen.Welcome)}
+              >
+                <Text style={styles.backIcon}>←</Text>
+              </TouchableOpacity>
+
               <View style={{ marginBottom: 20 }}>
                 <Text style={styles.title}>Login account</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4, marginTop: 4 }}>
+                {/* <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4, marginTop: 4 }}>
                   <Text style={styles.body}>If you don't have an account, </Text>
                   <TouchableOpacity onPress={() => navigation.navigate(Screen.SignUp)}>
                     <Text style={{ color: colors.signUpTextColor }}>Sign up</Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
               </View>
 
               <DefaultTextInput
@@ -286,7 +207,7 @@ export default function LoginScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+            </View>
           </ScrollView>
 
           {/* Alert */}
@@ -317,7 +238,39 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     marginTop: '15%',
     alignItems: 'center',
+    opacity: 0.5,
     zIndex: 0,
+  },
+  logoContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    transform: [{ translateY: -SCREEN_HEIGHT / 3.2 }, { scale: 0.65 }],
+    zIndex: 0,
+  },
+  logo: {
+    width: '80%',
+    height: '80%',
+    resizeMode: 'contain',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  backIcon: {
+    color: colors.text,
+    fontFamily: FontFamily.Regular,
+    fontSize: 28,
+    lineHeight: 32,
   },
   title: {
     fontFamily: FontFamily.SemiBold,
@@ -346,7 +299,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
     paddingBottom: 60,
-    marginBottom: 50,
+    marginBottom: 0,
     gap: Platform.OS === 'ios' ? 10 : 6,
     zIndex: 1,
   },

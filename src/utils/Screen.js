@@ -1,6 +1,7 @@
 // src/constants/Screen.js
 
 const Screen = {
+  Welcome: 'welcome',
   Login: 'loginScreen',
   MainTabs: 'mainTabs',
   Home: 'homeScreen',
@@ -13,6 +14,9 @@ const Screen = {
   ChangePassword: 'changePassword',
   ForgotPassword: 'forgotPassword',
   VerificationScreen: 'verification',
+  NonMemberEmail: 'nonMemberEmail',
+  NonMemberInfo: 'nonMemberInfo',
+  NonMemberVerification: 'nonMemberVerification',
   ResetPasswordScreen: 'resetPassword',
   EventDetailScreen: 'eventDetail',
   EventRegistrationAsScreen: 'eventRegistrationAs',
@@ -23,8 +27,15 @@ const Screen = {
   NetworkError: 'networkError',
   Benefit: 'benefit',
   DeleteAccount: 'deleteAccount',
-
-
+  ReceiptInformation : 'receiptInfromation',
+  SeasonalPromotionDetail: 'seasonalPromotionDetail',
+  PdfViewer: 'pdfViewer',
+  NewsletterByDate: 'newsletterByDate',
+  NewsletterDetail: 'newsletterDetail',
+  MouPartners: 'mouPartners',
+  InAppWebView: 'inAppWebView',
+  MemberDirectory: 'memberDirectory',
+  MemberDirectoryDetail: 'memberDirectoryDetail'
 };
 
 export default Screen;

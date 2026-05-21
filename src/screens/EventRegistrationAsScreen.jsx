@@ -86,9 +86,9 @@ const EventRegistrationAsScreen = ({ navigation, route }) => {
       setLoading(false);
     }
   };
-  const onClick = useCallback((selectedId) => {
-    setSelectedId(selectedId);
-  })
+  const onClick = useCallback((nextSelectedId) => {
+    setSelectedId(nextSelectedId);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

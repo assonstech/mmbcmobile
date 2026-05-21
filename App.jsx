@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import OrganizationDetailScreen from './src/screens/OrganizationDetailScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
@@ -13,6 +14,9 @@ import NoteScreen from './src/screens/NoteScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import VerificationScreen from './src/screens/VerificationScreen';
+import NonMemberEmailScreen from './src/screens/NonMemberEmailScreen';
+import NonMemberInfoScreen from './src/screens/NonMemberInfoScreen';
+import NonMemberVerificationScreen from './src/screens/NonMemberVerificationScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import EventDetailScreen from './src/screens/EventDetailScreen'
 import EventRegistrationAsScreen from './src/screens/EventRegistrationAsScreen'
@@ -22,6 +26,15 @@ import SignUpScreen from './src/screens/RegisterScreen'
 import GuestDetailScreen from './src/screens/GuestDetailScreen'
 import NetworkErrorScreen from './src/screens/NetworkErrorScreen'
 import DeleteAccountScreen from './src/screens/DeleteAccountScreen'
+import ReceiptInformationScreen from './src/screens/ReceiptInformationScreen'
+import SeasonalPromotionDetailScreen from './src/screens/SeasonalPromotionDetailScreen'
+import PdfViewerScreen from './src/screens/PdfViewerScreen'
+import NewsletterByDateScreen from './src/screens/NewsletterByDateScreen'
+import NewsletterDetailScreen from './src/screens/NewsletterDetailScreen'
+import MouPartnersScreen from './src/screens/MouPartnersScreen'
+import InAppWebViewScreen from './src/screens/InAppWebViewScreen'
+import MemberDirectoryScreen from './src/screens/MemberDirectoryScreen'
+import MemberDirectoryDetailScreen from './src/screens/MemberDirectoryDetailScreen'
 
 
 import { navigationRef } from './src/common/NavigationService';
@@ -55,10 +68,10 @@ export default function App() {
         if (token) {
           setInitialRoute(Screen.MainTabs);
         } else {
-          setInitialRoute(Screen.Login);
+          setInitialRoute(Screen.Welcome);
         }
       } catch (err) {
-        setInitialRoute(Screen.Login);
+        setInitialRoute(Screen.Welcome);
       }
     };
 
@@ -82,6 +95,7 @@ export default function App() {
       <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
           <Stack.Screen name={Screen.MainTabs} component={MainTabs} />
+          <Stack.Screen name={Screen.Welcome} component={WelcomeScreen} />
           <Stack.Screen name={Screen.Login} component={LoginScreen} />
           <Stack.Screen name={Screen.OrganizationDetail} component={OrganizationDetailScreen} />
           <Stack.Screen name={Screen.PrivacyPolicy} component={PrivacyPolicyScreen} />
@@ -90,6 +104,9 @@ export default function App() {
           <Stack.Screen name={Screen.ChangePassword} component={ChangePasswordScreen} />
           <Stack.Screen name={Screen.ForgotPassword} component={ForgotPasswordScreen} />
           <Stack.Screen name={Screen.VerificationScreen} component={VerificationScreen} />
+          <Stack.Screen name={Screen.NonMemberEmail} component={NonMemberEmailScreen} />
+          <Stack.Screen name={Screen.NonMemberInfo} component={NonMemberInfoScreen} />
+          <Stack.Screen name={Screen.NonMemberVerification} component={NonMemberVerificationScreen} />
           <Stack.Screen name={Screen.ResetPasswordScreen} component={ResetPasswordScreen} />
           <Stack.Screen name={Screen.EventDetailScreen} component={EventDetailScreen} />
           <Stack.Screen name={Screen.EventRegistrationAsScreen} component={EventRegistrationAsScreen} />
@@ -100,6 +117,15 @@ export default function App() {
           <Stack.Screen name={Screen.NetworkError} component={NetworkErrorScreen} />
           <Stack.Screen name={Screen.Benefit} component={BenefitScreen} />
           <Stack.Screen name={Screen.DeleteAccount} component={DeleteAccountScreen} />
+          <Stack.Screen name={Screen.ReceiptInformation} component={ReceiptInformationScreen} />
+          <Stack.Screen name={Screen.SeasonalPromotionDetail} component={SeasonalPromotionDetailScreen} />
+          <Stack.Screen name={Screen.PdfViewer} component={PdfViewerScreen} />
+          <Stack.Screen name={Screen.NewsletterByDate} component={NewsletterByDateScreen} />
+          <Stack.Screen name={Screen.NewsletterDetail} component={NewsletterDetailScreen} />
+          <Stack.Screen name={Screen.MouPartners} component={MouPartnersScreen} />
+          <Stack.Screen name={Screen.InAppWebView} component={InAppWebViewScreen} />
+          <Stack.Screen name={Screen.MemberDirectory} component={MemberDirectoryScreen} />
+          <Stack.Screen name={Screen.MemberDirectoryDetail} component={MemberDirectoryDetailScreen} />
 
 
         </Stack.Navigator>

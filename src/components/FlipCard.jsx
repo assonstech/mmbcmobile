@@ -69,7 +69,7 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
         ])
       ).start();
     }
-  }, [loading]);
+  }, [loading, shimmerAnim]);
 
   const translateY = shimmerAnim.interpolate({
     inputRange: [0, 1],

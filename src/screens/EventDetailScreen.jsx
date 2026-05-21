@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -30,12 +30,14 @@ import { formattedPrice, getFullImageUrl } from "../common/HttpSerivce";
 import Screen from "../utils/Screen";
 import ImageViewing from "react-native-image-viewing";
 import RNCalendarEvents from "react-native-calendar-events";
+import { useUserType } from "../utils/useUserType";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const EventDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
+    const { isNonMember } = useUserType();
 
     const [eventDetail, setEventDetail] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -50,12 +52,7 @@ const EventDetailScreen = ({ navigation, route }) => {
 
     const shimmerAnim = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-        startShimmer();
-        if (item?.id) fetchEventDetailById(true);
-    }, [item?.id]);
-
-    const startShimmer = () => {
+    const startShimmer = useCallback(() => {
         Animated.loop(
             Animated.sequence([
                 Animated.timing(shimmerAnim, {
@@ -72,7 +69,7 @@ const EventDetailScreen = ({ navigation, route }) => {
                 }),
             ])
         ).start();
-    };
+    }, [shimmerAnim]);
 
     const getEventDayDiff = () => {
         const currentEvent = eventDetail?.event;
@@ -88,18 +85,17 @@ const EventDetailScreen = ({ navigation, route }) => {
         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    const isEventExpired = (eventParam) => {
-        const currentEvent = eventParam || eventDetail?.event;
-        if (!currentEvent?.eventDate) return false;
+    const isEventExpired = useCallback((eventParam) => {
+        if (!eventParam?.eventDate) return false;
 
-        const eventDate = new Date(currentEvent.eventDate);
+        const eventDate = new Date(eventParam.eventDate);
         const today = new Date();
 
         eventDate.setHours(0, 0, 0, 0);
         today.setHours(0, 0, 0, 0);
 
         return today >= eventDate;
-    };
+    }, []);
 
     const isEventAllowedToRegister = () => {
         const diffDays = getEventDayDiff();
@@ -138,7 +134,7 @@ const EventDetailScreen = ({ navigation, route }) => {
         return new Date(a).getTime() === new Date(b).getTime();
     };
 
-    const fetchEventDetailById = async (showLoading = true) => {
+    const fetchEventDetailById = useCallback(async (showLoading = true) => {
         try {
             setDisabled(true);
             if (showLoading) setLoading(true);
@@ -147,6 +143,7 @@ const EventDetailScreen = ({ navigation, route }) => {
             console.log("event detail response:", JSON.stringify(response));
 
             if (response?.success && response?.data?.event) {
+                console.log("event detail response:", JSON.stringify(response.data));
                 setEventDetail(response.data);
 
                 if (isEventExpired(response.data.event)) {
@@ -161,7 +158,12 @@ const EventDetailScreen = ({ navigation, route }) => {
             if (showLoading) setLoading(false);
             setDisabled(false);
         }
-    };
+    }, [isEventExpired, item?.id]);
+
+    useEffect(() => {
+        startShimmer();
+        if (item?.id) fetchEventDetailById(true);
+    }, [fetchEventDetailById, item?.id, startShimmer]);
 
     const unRegister = async () => {
         if (!eventDetail?.event?.eventid) return;
@@ -320,6 +322,25 @@ const EventDetailScreen = ({ navigation, route }) => {
         }
     };
 
+    const handleReceiptInformation = () => {
+        navigation.navigate(Screen.ReceiptInformation, {
+            registrationId: eventDetail?.registration?.registrationId,
+            eventId: eventDetail?.event?.eventid,
+            isPaid: eventDetail?.registration?.isPaid,
+
+            eventTitle: eventDetail?.event?.eventTitle,
+            eventLocation: eventDetail?.event?.eventLocation,
+            eventFee: eventDetail?.event?.eventFee,
+            eventDate: eventDetail?.event?.eventDate,
+
+            companyName:
+                eventDetail?.registration?.companyOrIndividualName ||
+                "Malaysia Myanmar Business Chamber",
+
+            paymentType: "Cash",
+        });
+    };
+
     const handleGuestPress = () => {
         navigation.navigate(Screen.GuestDetail, {
             isMemberInclude: eventDetail?.registration?.isMemberInclude,
@@ -394,6 +415,12 @@ const EventDetailScreen = ({ navigation, route }) => {
     }
 
     const { event, isRegistered, guests } = eventDetail;
+    const showNonMemberPrice =
+        isNonMember && event?.nonMemberFee !== null && event?.nonMemberFee !== undefined;
+    const visiblePrice =
+        showNonMemberPrice
+            ? event.nonMemberFee
+            : event?.eventFee;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -456,6 +483,24 @@ const EventDetailScreen = ({ navigation, route }) => {
                         </Text>
                     </TouchableOpacity>
 
+                    {eventDetail?.isRegistered &&
+                        eventDetail?.registration &&
+                        !eventDetail?.registration?.isPaid && (
+                            <TouchableOpacity
+                                style={styles.receiptButton}
+                                onPress={handleReceiptInformation}
+                            >
+                                <Image
+                                    source={require("../assets/icons/ic_receipt.png")}
+                                    style={styles.receiptIcon}
+                                />
+
+                                <Text style={styles.receiptButtonText}>
+                                    Receipt information
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
                     <View style={styles.row}>
                         <Image source={EndoCalendar} style={styles.icon} />
                         <Text style={styles.infoText}>
@@ -477,9 +522,20 @@ const EventDetailScreen = ({ navigation, route }) => {
                         </Text>
                     </View>
 
-                    <Text style={styles.priceText}>
-                        💰 {event.eventFee ? `${formattedPrice(event.eventFee)} Ks ` : "Free"}
-                    </Text>
+                    {showNonMemberPrice ? (
+                        <View style={styles.priceGroup}>
+                            <Text style={styles.priceText}>
+                                💰 Member: {event.eventFee ? `${formattedPrice(event.eventFee)} Ks` : "Free"}
+                            </Text>
+                            <Text style={styles.priceText}>
+                                💰 Non-member: {visiblePrice ? `${formattedPrice(visiblePrice)} Ks` : "Free"}
+                            </Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.priceText}>
+                            💰 {visiblePrice ? `${formattedPrice(visiblePrice)} Ks ` : "Free"}
+                        </Text>
+                    )}
                 </View>
 
                 {isRegistered && guests?.length > 0 && (
@@ -716,6 +772,9 @@ const styles = StyleSheet.create({
         fontFamily: FontFamily.Medium,
         fontSize: 15,
         color: colors.text,
+    },
+    priceGroup: {
+        marginTop: 2,
     },
 
     sectionTitle: {
@@ -1005,5 +1064,30 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "600",
+    },
+    receiptButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FDB515",
+        borderRadius: 999,
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        marginBottom: 16,
+    },
+
+    receiptIcon: {
+        width: 24,
+        height: 24,
+        resizeMode: "contain",
+        marginRight: 10,
+        tintColor: "#000",
+    },
+
+    receiptButtonText: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#000",
     },
 });
