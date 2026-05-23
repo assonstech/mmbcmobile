@@ -1,12 +1,11 @@
 import React, { memo, useState } from "react";
 import { TouchableOpacity, View, Text, Image, StyleSheet, ActivityIndicator } from "react-native";
 import { FontFamily } from "../styles/fontStyle";
-import DarkColors from "../colors/dark";
-import LightColors from "../colors/light";
 import { formattedPrice } from "../common/HttpSerivce";
-
-const isDarkMode = true;
-const colors = isDarkMode ? DarkColors : LightColors;
+import CalendarIcon from "../assets/icons/endo-calendar.png";
+import ClockIcon from "../assets/icons/endo-clock.png";
+import MemberPriceIcon from "../assets/icons/memberPrice.png";
+import NonMemberPriceIcon from "../assets/icons/nonMemberPrice.png";
 
 const formatEventPrice = (price) => (
     price ? `${formattedPrice(price)} MMK` : "Free"
@@ -21,171 +20,195 @@ const EventCard = ({ item, onPress }) => {
                 {loading && (
                     <ActivityIndicator
                         size="large"
-                        color="#0000ff"
-                        style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: [{ translateX: -12 }, { translateY: -12 }],
-                            zIndex: 1,
-                        }}
+                        color="#FDB813"
+                        style={styles.imageLoader}
                     />
                 )}
 
                 {item.image && (
                     <Image
-                        source={item.image}  // Keep your original { uri: ... } object
+                        source={item.image}
                         style={styles.cardImage}
                         onLoadStart={() => setLoading(true)}
                         onLoadEnd={() => setLoading(false)}
                     />
                 )}
+            </View>
 
-                {/* Price Top-Right */}
-                <View style={styles.topRight}>
-                    {item.showNonMemberPrice ? (
-                        <>
-                            <Text style={styles.priceText}>
-                                Member: {formatEventPrice(item.memberPrice)}
-                            </Text>
-                            <Text style={styles.priceText}>
-                                Non-member: {formatEventPrice(item.nonMemberPrice)}
-                            </Text>
-                        </>
-                    ) : (
-                        <Text style={styles.priceText}>
-                            {formatEventPrice(item.price)}
+            <View style={styles.content}>
+                <Text style={styles.locationText} numberOfLines={1}>
+                    {item.location}
+                </Text>
+                <Text style={styles.titleText} numberOfLines={2}>
+                    {item.description}
+                </Text>
+
+                <View style={styles.metaRow}>
+                    <Image source={CalendarIcon} style={styles.metaIcon} />
+                    <Text style={styles.metaText}>{item.displayDate || item.date}</Text>
+                </View>
+
+                <View style={styles.metaRow}>
+                    <Image source={ClockIcon} style={styles.metaIcon} />
+                    <Text style={styles.metaText}>{item.time}</Text>
+                </View>
+
+                <PriceBox
+                    label="Member pricing"
+                    value={formatEventPrice(item.memberPrice ?? item.price)}
+                    accent
+                />
+
+                {item.showNonMemberPrice && (
+                    <PriceBox
+                        label="Non-member pricing"
+                        value={formatEventPrice(item.nonMemberPrice ?? 0)}
+                    />
+                )}
+
+                {!!item.rule && (
+                    <View style={styles.ruleContainer}>
+                        <Text style={styles.ruleText} numberOfLines={1}>
+                            {item.rule}
                         </Text>
-                    )}
-                </View>
-
-                {/* Description & Location Bottom-Left */}
-                <View style={styles.bottomLeft}>
-                    <Text style={styles.descriptionText} numberOfLines={2}>
-                        {item.description}
-                    </Text>
-                    <Text style={styles.locationText}>{item.location}</Text>
-                </View>
-            </View>
-
-            {/* Bottom Row */}
-            <View style={styles.bottomRow}>
-                <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/endo-calendar.png')} style={{ width: 24, height: 24, tintColor: 'white' }} />
-                    <Text style={styles.dateText}>{item?.date}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 4, alignItems: "center" }}>
-                    <Image source={require('../assets/icons/endo-clock.png')} style={{ width: 24, height: 24, tintColor: 'white' }} />
-                    <Text style={styles.timeText}>{item.time}</Text>
-                </View>
-            </View>
-
-            {/* Rule Section */}
-            <View style={styles.ruleContainer}>
-                <Text style={styles.ruleText}>{item.rule}</Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
 };
 
+const PriceBox = ({ label, value, accent = false }) => (
+    <View style={styles.priceBox}>
+        <Image
+            source={accent ? MemberPriceIcon : NonMemberPriceIcon}
+            style={styles.priceIcon}
+        />
+        <View style={styles.priceTextWrap}>
+            <Text style={styles.priceLabel}>{label}</Text>
+            <Text style={styles.priceValue}>{value}</Text>
+        </View>
+    </View>
+);
+
 export default memo(EventCard);
 
 const styles = StyleSheet.create({
     cardContainer: {
-        borderRadius: 20,
+        borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: colors.background,
-        elevation: 3,
+        backgroundColor: "#0B1426",
+        borderWidth: 5,
+        borderColor: "#081126",
+        elevation: 4,
         marginBottom: 16,
     },
     imageContainer: {
         width: "100%",
-        height: 220,
+        height: 142,
         position: "relative",
-        padding: 4,
+        backgroundColor: "#162236",
     },
     cardImage: {
         width: "100%",
         height: "100%",
-        borderRadius: 20,
+        borderTopLeftRadius: 21,
+        borderTopRightRadius: 21,
         resizeMode: "cover",
     },
-    topRight: {
+    imageLoader: {
         position: "absolute",
-        top: 8,
-        right: 8,
-        backgroundColor: 'rgba(255,255,255,0.4)',
-        borderRadius: 9999,
+        top: "50%",
+        left: "50%",
+        transform: [{ translateX: -12 }, { translateY: -12 }],
+        zIndex: 1,
+    },
+    content: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
-    },
-    priceText: {
-        color: colors.text,
-        fontFamily: FontFamily.SemiBold,
-        fontSize: 14,
-    },
-    bottomLeft: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.5)", // semi-transparent overlay
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-    },
-    descriptionText: {
-        color: "#fff",
-        fontFamily: FontFamily.SemiBold,
-        fontSize: 20,
-        fontWeight: '600',
+        paddingTop: 16,
+        paddingBottom: 0,
     },
     locationText: {
-        color: "#fff",
+        color: "#CBD4E1",
         fontFamily: FontFamily.Medium,
-        fontWeight: '500',
-        fontSize: 14,
-        marginTop: 4,
+        fontSize: 15,
+        lineHeight: 21,
+        marginBottom: 6,
     },
-
-    bottomRow: {
+    titleText: {
+        color: "#FFFFFF",
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 18,
+        fontWeight: "700",
+        lineHeight: 25,
+        marginBottom: 16,
+    },
+    metaRow: {
         flexDirection: "row",
-        justifyContent: "space-around",
         alignItems: "center",
-        height: 80,
-        paddingHorizontal: 16,
+        marginBottom: 14,
     },
-    dateText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        fontWeight: '500',
-        lineHeight: 24,
-        color: "#fff",
+    metaIcon: {
+        width: 28,
+        height: 28,
+        resizeMode: "contain",
+        tintColor: "#FFFFFF",
+        marginRight: 14,
     },
-    timeText: {
+    metaText: {
         fontFamily: FontFamily.Medium,
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: 17,
         lineHeight: 24,
-        color: "#fff",
+        color: "#FFFFFF",
+    },
+    priceBox: {
+        minHeight: 66,
+        borderRadius: 8,
+        backgroundColor: "#1C2A3E",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 18,
+        marginBottom: 6,
+        marginHorizontal: -16,
+    },
+    priceIcon: {
+        width: 42,
+        height: 42,
+        resizeMode: "contain",
+        marginRight: 18,
+    },
+    priceTextWrap: {
+        flex: 1,
+    },
+    priceLabel: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 15,
+        lineHeight: 20,
+        color: "#CBD4E1",
+    },
+    priceValue: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 20,
+        fontWeight: "700",
+        lineHeight: 27,
+        color: "#FFFFFF",
     },
     ruleContainer: {
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        flex: 1,
-        backgroundColor: colors.primary,
-        margin: 2,
+        minHeight: 44,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderBottomLeftRadius: 21,
+        borderBottomRightRadius: 21,
+        backgroundColor: "#1C2A3E",
         justifyContent: "center",
-        alignItems: "center",
-        paddingVertical: 8,
+        paddingHorizontal: 20,
+        marginTop: 2,
+        marginHorizontal: -16,
     },
     ruleText: {
-        color: "#fff",
+        color: "#CBD4E1",
         fontFamily: FontFamily.Medium,
-        fontSize: 12,
-        textAlign: 'center',
+        fontSize: 15,
+        lineHeight: 21,
     },
 });

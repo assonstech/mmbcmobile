@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,38 +13,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import CalendarIcon from "../assets/icons/endo-calendar.png";
 import NotificationIcon from "../assets/icons/notification.png";
+import { fetchNotifications } from "../controllers/NotificationController";
+import Screen from "../utils/Screen";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
+const PAGE_LIMIT = 10;
 
-const notifications = [
-  {
-    id: "1",
-    section: "Today",
-    title: "Notification title",
-    body: "Lorem ipsum dolor sit amet consectetur. Amet at tristique lorem id quis placerat a ullamcorper.",
-    time: "3:21 PM",
-  },
-  {
-    id: "2",
-    section: "Today",
-    title: "Pearl Myeik (Myanmar) Co., ltd",
-    body: "Lorem ipsum dolor sit amet consectetur. Amet at tristique lorem id quis placerat a ullamcorper.",
-    time: "3:21 PM",
-  },
-  {
-    id: "3",
-    section: "Yesterday",
-    title: "Pearl Myeik (Myanmar) Co., ltd",
-    body: "Lorem ipsum dolor sit amet consectetur. Amet at tristique lorem id quis placerat a ullamcorper.",
-    time: "3:21 PM",
-  },
-];
-
-const NotificationRow = ({ item, isLastInSection }) => (
-  <View style={[styles.row, isLastInSection && styles.rowLastInSection]}>
+const NotificationRow = ({ item, isLastInSection, onPress }) => (
+  <TouchableOpacity
+    activeOpacity={item.eventId ? 0.85 : 1}
+    disabled={!item.eventId}
+    style={[styles.row, isLastInSection && styles.rowLastInSection]}
+    onPress={onPress}
+  >
     <View style={styles.iconBox}>
       <Image
         source={NotificationIcon}
@@ -52,14 +37,55 @@ const NotificationRow = ({ item, isLastInSection }) => (
     </View>
     <View style={styles.content}>
       <Text style={styles.rowTitle}>{item.title}</Text>
-      <Text style={styles.rowBody}>{item.body}</Text>
+      {!!item.description && (
+        <Text style={styles.rowBody}>{item.description}</Text>
+      )}
       <Text style={styles.timeText}>{item.time}</Text>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
-const NotificationScreen = () => {
-  const [selectedTab, setSelectedTab] = useState("General");
+const NotificationScreen = ({ navigation }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadNotifications = useCallback(async (nextPage = 1, shouldAppend = false) => {
+    if (shouldAppend) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
+    const result = await fetchNotifications(nextPage, PAGE_LIMIT);
+    const formatted = result.notifications.map(formatNotification);
+
+    setNotifications((current) => (
+      shouldAppend ? [...current, ...formatted] : formatted
+    ));
+    setPage(nextPage);
+    setTotalPages(result.pagination?.totalPages || 1);
+    setLoading(false);
+    setLoadingMore(false);
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadNotifications(1);
+    setRefreshing(false);
+  };
+
+  const loadMore = () => {
+    if (loading || loadingMore || page >= totalPages) return;
+    loadNotifications(page + 1, true);
+  };
 
   const renderItem = ({ item, index }) => {
     const previous = notifications[index - 1];
@@ -75,7 +101,16 @@ const NotificationScreen = () => {
             <View style={styles.sectionDivider} />
           </View>
         )}
-        <NotificationRow item={item} isLastInSection={isLastInSection} />
+        <NotificationRow
+          item={item}
+          isLastInSection={isLastInSection}
+          onPress={() => {
+            if (!item.eventId) return;
+            navigation.navigate(Screen.EventDetailScreen, {
+              item: { id: String(item.eventId) },
+            });
+          }}
+        />
       </>
     );
   };
@@ -84,41 +119,81 @@ const NotificationScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Notifications</Text>
-        <TouchableOpacity activeOpacity={0.8} style={styles.dateButton}>
-          <Image
-            source={CalendarIcon}
-            style={styles.dateIcon}
-            resizeMode="contain"
-          />
-          <Text style={styles.dateText}>Date filter</Text>
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.segmentedControl}>
-        {["General", "Receipt info"].map((tab) => {
-          const isSelected = selectedTab === tab;
-          return (
-            <TouchableOpacity
-              key={tab}
-              activeOpacity={0.85}
-              style={[styles.segmentButton, isSelected && styles.segmentButtonSelected]}
-              onPress={() => setSelectedTab(tab)}
-            >
-              <Text style={styles.segmentText}>{tab}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.button} />
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            notifications.length === 0 && styles.emptyListContent,
+          ]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No notifications available.</Text>
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator
+                size="small"
+                color={colors.button}
+                style={styles.footerLoader}
+              />
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
+};
+
+const formatNotification = (item) => ({
+  id: item.notificationId || item.id,
+  title: item.title || "-",
+  description: item.description || "",
+  type: (item.type || "EVENT").toUpperCase(),
+  eventId: item.eventId,
+  createdDate: item.createdDate,
+  section: getDateSection(item.createdDate),
+  time: formatTime(item.createdDate),
+});
+
+const getDateSection = (dateValue) => {
+  if (!dateValue) return "Earlier";
+
+  const date = new Date(dateValue);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatTime = (dateValue) => {
+  if (!dateValue) return "";
+  return new Date(dateValue).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 export default NotificationScreen;
@@ -130,11 +205,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
     marginTop: 28,
+    marginBottom: 6,
   },
   title: {
     fontFamily: FontFamily.SemiBold,
@@ -142,51 +215,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.text,
   },
-  dateButton: {
-    height: 44,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: colors.textInputBorderColor,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateIcon: {
-    width: 20,
-    height: 20,
-    tintColor: colors.text,
-    marginRight: 8,
-  },
-  dateText: {
-    fontFamily: FontFamily.Medium,
-    fontSize: 14,
-    color: colors.text,
-  },
-  segmentedControl: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-    marginTop: 18,
-  },
-  segmentButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 9999,
-    backgroundColor: "#F8E7E7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentButtonSelected: {
-    backgroundColor: colors.button,
-  },
-  segmentText: {
-    fontFamily: FontFamily.Medium,
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.text,
-  },
   listContent: {
     paddingBottom: 120,
+  },
+  emptyListContent: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sectionHeader: {
     paddingHorizontal: 16,
@@ -251,5 +292,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.loginAccountColor,
     marginTop: 8,
+  },
+  emptyText: {
+    fontFamily: FontFamily.Medium,
+    fontSize: 16,
+    color: colors.text,
+    textAlign: "center",
+  },
+  footerLoader: {
+    marginTop: 10,
+    marginBottom: 18,
   },
 });

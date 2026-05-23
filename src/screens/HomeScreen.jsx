@@ -52,7 +52,7 @@ const HomeScreen = ({ navigation }) => {
 
 
     const lastTranslateY = useRef(containerOffset);
-    const chips = ["All", "In-person", "Online", "Registered", "Free", "IsPaid"];
+    const chips = ["All", "In-person", "Online", "Registered", "Free", "Paid"];
 
     // ------------------- PanResponder -------------------
     const panResponder = useRef(
@@ -135,10 +135,16 @@ const HomeScreen = ({ navigation }) => {
                         date: `${eventDate.getDate().toString().padStart(2, "0")}/${(eventDate.getMonth() + 1)
                             .toString()
                             .padStart(2, "0")}/${eventDate.getFullYear()}`,  // 👈 formatted dd/mm/yyyy
+                        displayDate: eventDate.toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                        }),
                         time: `${formattedStart} - ${formattedEnd}`,
                         price: visiblePrice,
                         memberPrice,
                         nonMemberPrice,
+                        showNonMemberPrice: isNonMember,
                         accessType: item.accessType,
                         eventType: item.eventType ?? "inPerson",
                         rule: item.eventRule ?? "",

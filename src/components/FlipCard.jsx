@@ -16,14 +16,16 @@ import EndoGlobal from "../assets/icons/endo-global.png";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import { getFullImageUrl } from "../common/HttpSerivce";
+import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
 import QRCode from "react-native-qrcode-svg";
+import AppLogo from "../assets/images/appLogo.png";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
   const [flipped, setFlipped] = useState(false);
+  const [qrToken, setQrToken] = useState("");
   const animatedValue = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
@@ -70,6 +72,15 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
       ).start();
     }
   }, [loading, shimmerAnim]);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      const token = await HttpSerivce.getAccessToken();
+      setQrToken(token || "");
+    };
+
+    loadToken();
+  }, []);
 
   const translateY = shimmerAnim.interpolate({
     inputRange: [0, 1],
@@ -191,12 +202,16 @@ const FlipCard = ({ frontImage, backImage, height = 202, info, loading }) => {
           <Image source={backImage} style={styles.image} />
           <View style={styles.backOverlay}>
             {/* QR Code Center */}
-            {info?.memberCode && (
+            {!!qrToken && (
               <QRCode
-                value={info.memberCode}
+                value={qrToken}
                 size={120}
                 color={colors.text}
-                backgroundColor="transparent"
+                backgroundColor="white"
+                logo={AppLogo}
+                logoSize={28}
+                logoBorderRadius={14}
+                logoBackgroundColor="white"
               />
             )}
 
