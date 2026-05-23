@@ -82,6 +82,7 @@ const HubScreen = ({ navigation }) => {
                 createdAt: item.createdAt || item.createdDate || item.publishedAt,
                 description: item.content || item.fullDescription || item.description || item.title || "",
                 image: item.image || item.imageUrl ? { uri: getFullImageUrl(item.image || item.imageUrl) } : null,
+                pdfUrl: item.pdfUrl || item.pdfURL || item.pdfurl || null,
             })) || [];
 
             if (append) {
@@ -399,7 +400,18 @@ const HubScreen = ({ navigation }) => {
                 <FlatList
                     ref={listRef}
                     data={posts}
-                    renderItem={({ item, index }) => <KnowledgeCard item={item} index={index} onToggleExpand={handleToggleExpand} />}
+                    renderItem={({ item, index }) => (
+                        <KnowledgeCard
+                            item={item}
+                            index={index}
+                            onToggleExpand={handleToggleExpand}
+                            onViewFile={(url) => navigation.navigate(Screen.PdfViewer, {
+                                url,
+                                title: item.description || "Document",
+                                openedAt: Date.now(),
+                            })}
+                        />
+                    )}
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingVertical: 16 }}

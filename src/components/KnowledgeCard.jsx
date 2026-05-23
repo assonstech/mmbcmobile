@@ -5,11 +5,12 @@ import { FontFamily } from "../styles/fontStyle";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import ImageViewing from "react-native-image-viewing";
+import { getFullImageUrl } from "../common/HttpSerivce";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
-const KnowledgeCard = ({ item, index, onToggleExpand }) => {
+const KnowledgeCard = ({ item, index, onToggleExpand, onViewFile }) => {
   const [expanded, setExpanded] = useState(false);
   const [imageVisible, setImageVisible] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
@@ -74,6 +75,16 @@ const KnowledgeCard = ({ item, index, onToggleExpand }) => {
           onRequestClose={() => setImageVisible(false)}
         />
       )}
+
+      {!!item.pdfUrl && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.viewFileButton}
+          onPress={() => onViewFile?.(getFullImageUrl(item.pdfUrl))}
+        >
+          <Text style={styles.viewFileText}>View File</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -109,5 +120,18 @@ const styles = StyleSheet.create({
     left: "50%",
     transform: [{ translateX: -12 }, { translateY: -12 }],
     zIndex: 1,
+  },
+  viewFileButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#5A1E08",
+    borderRadius: 9999,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    marginTop: 12,
+  },
+  viewFileText: {
+    fontFamily: FontFamily.Medium,
+    fontSize: 13,
+    color: "white",
   },
 });
