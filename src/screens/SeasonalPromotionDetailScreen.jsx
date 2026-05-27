@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     Image,
     ScrollView,
@@ -15,7 +15,7 @@ import { fetchSeasonalPromotionById } from "../controllers/SeasonalPromotionCont
 import { getFullImageUrl } from "../common/HttpSerivce";
 import CalendarIcon from "../assets/icons/endo-calendar.png";
 import HeaderWithActions from "../components/HeaderWithActions";
-import Screen from "../utils/Screen";
+import DocumentOverlay from "../components/DocumentOverlay";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -23,6 +23,7 @@ const colors = isDarkMode ? DarkColors : LightColors;
 const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
     const [promotion, setPromotion] = useState(item || null);
+    const [documentOverlay, setDocumentOverlay] = useState(null);
 
     useEffect(() => {
         const loadDetail = async () => {
@@ -42,6 +43,14 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
     const dateText = formatDetailDate(displayDate);
     const timeText = formatDetailTime(displayDate);
     const documentUrl = promotion?.pdfUrl ? getFullImageUrl(promotion.pdfUrl) : null;
+
+    const openDocumentOverlay = useCallback((url, title = "Document") => {
+        setDocumentOverlay({ url, title });
+    }, []);
+
+    const closeDocumentOverlay = useCallback(() => {
+        setDocumentOverlay(null);
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -88,16 +97,19 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
                     <TouchableOpacity
                         activeOpacity={0.85}
                         style={styles.pdfButton}
-                        onPress={() => navigation.push(Screen.PdfViewer, {
-                            url: documentUrl,
-                            title: promotion?.title || "Document",
-                            openedAt: Date.now(),
-                        })}
+                        onPress={() => openDocumentOverlay(documentUrl, promotion?.title || "Document")}
                     >
                         <Text style={styles.pdfButtonText}>View File</Text>
                     </TouchableOpacity>
                 )}
             </ScrollView>
+
+            <DocumentOverlay
+                visible={!!documentOverlay}
+                url={documentOverlay?.url}
+                title={documentOverlay?.title}
+                onClose={closeDocumentOverlay}
+            />
         </SafeAreaView>
     );
 };

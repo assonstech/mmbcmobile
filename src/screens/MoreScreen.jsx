@@ -26,8 +26,13 @@ const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
 /* --------------------------- FieldCard Component --------------------------- */
-const FieldCard = ({ icon, label, onPress }) => (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+const FieldCard = ({ icon, label, onPress, disabled }) => (
+    <TouchableOpacity
+        style={[styles.card, disabled && styles.cardDisabled]}
+        onPress={onPress}
+        disabled={disabled}
+        activeOpacity={0.85}
+    >
         <View style={styles.cardLeft}>
             <Image source={icon} style={styles.cardIcon} />
             <Text style={styles.label}>{label}</Text>
@@ -36,6 +41,13 @@ const FieldCard = ({ icon, label, onPress }) => (
             source={require("../../src/assets/icons/endo-arrow-right-01.png")}
             style={styles.arrowIcon}
         />
+        {disabled && (
+            <View style={styles.memberOnlyOverlay}>
+                <View style={styles.memberOnlyPill}>
+                    <Text style={styles.memberOnlyText}>Member only</Text>
+                </View>
+            </View>
+        )}
     </TouchableOpacity>
 );
 
@@ -165,29 +177,21 @@ const MoreScreen = ({ navigation }) => {
     };
 
     const memberMenuItems = [
-        { label: "My Profile", icon: require("../../src/assets/icons/profileIcon.png") },
-        { label: "Change Password", icon: require("../../src/assets/icons/key.png") },
+        { label: "My Profile", icon: require("../../src/assets/icons/profileIcon.png"), memberOnly: true },
+        { label: "Change Password", icon: require("../../src/assets/icons/key.png"), memberOnly: true },
         { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
         { label: "About Us", icon: require("../../src/assets/icons/note.png") },
         { label: "MOU Partners", icon: PartnerIcon },
-        { label: "Member directory", icon: MemberDirectoryIcon },
+        { label: "Member directory", icon: MemberDirectoryIcon,memberOnly: true },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
-        { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
-        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png") },
+        { label: "Organization chart", icon: require("../../src/assets/icons/people.png"), memberOnly: true },
+        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png"), memberOnly: true },
         { label: "Delete account", icon: require("../../src/assets/icons/delete.png") },
 
 
     ];
 
-    const nonMemberMenuItems = [
-        { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
-        { label: "About Us", icon: require("../../src/assets/icons/note.png") },
-        { label: "MOU Partners", icon: PartnerIcon },
-        { label: "Member directory", icon: MemberDirectoryIcon },
-        { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
-    ];
-
-    const menuItems = isNonMember ? nonMemberMenuItems : memberMenuItems;
+    const menuItems = memberMenuItems;
     const displayName = isNonMember
         ? memberInfo?.companyOrIndividualName || memberInfo?.representiveName || "-"
         : memberInfo?.representiveName || memberInfo?.companyOrIndividualName || "-";
@@ -276,6 +280,7 @@ const MoreScreen = ({ navigation }) => {
                                     key={index}
                                     label={item.label}
                                     icon={item.icon}
+                                    disabled={isNonMember && item.memberOnly}
                                     onPress={() => handlePress(item.label)}
                                 />
                             ))}
@@ -369,11 +374,34 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 20,
         backgroundColor: colors.itemSeparateColor,
+        overflow: "hidden",
+    },
+    cardDisabled: {
+        opacity: 1,
     },
     cardLeft: { flexDirection: "row", alignItems: "center" },
     cardIcon: { width: 28, height: 28, resizeMode: "contain", marginRight: 10 },
     label: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.text },
     arrowIcon: { width: 20, height: 20, tintColor: colors.loginAccountColor },
+    memberOnlyOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(255,255,255,0.62)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    memberOnlyPill: {
+        minHeight: 28,
+        borderRadius: 9999,
+        backgroundColor: colors.button,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 12,
+    },
+    memberOnlyText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 12,
+        color: colors.text,
+    },
     button: {
         height: 56,
         borderRadius: 9999,

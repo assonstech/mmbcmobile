@@ -26,6 +26,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../utils/Screen";
 import CalendarIcon from "../assets/icons/endo-calendar.png";
 import ImageViewing from "react-native-image-viewing";
+import DocumentOverlay from "../components/DocumentOverlay";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -55,6 +56,15 @@ const HubScreen = ({ navigation }) => {
 
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
+    const [documentOverlay, setDocumentOverlay] = useState(null);
+
+    const openDocumentOverlay = useCallback((url, title = "Document") => {
+        setDocumentOverlay({ url, title });
+    }, []);
+
+    const closeDocumentOverlay = useCallback(() => {
+        setDocumentOverlay(null);
+    }, []);
 
     const handleToggleExpand = useCallback((id, isExpanded, index) => {
         if (!isExpanded) {
@@ -405,11 +415,7 @@ const HubScreen = ({ navigation }) => {
                             item={item}
                             index={index}
                             onToggleExpand={handleToggleExpand}
-                            onViewFile={(url) => navigation.navigate(Screen.PdfViewer, {
-                                url,
-                                title: item.description || "Document",
-                                openedAt: Date.now(),
-                            })}
+                            onViewFile={(url) => openDocumentOverlay(url, item.description || "Document")}
                         />
                     )}
                     keyExtractor={(item) => item.id}
@@ -442,6 +448,13 @@ const HubScreen = ({ navigation }) => {
                     }}
                 />
             )}
+
+            <DocumentOverlay
+                visible={!!documentOverlay}
+                url={documentOverlay?.url}
+                title={documentOverlay?.title}
+                onClose={closeDocumentOverlay}
+            />
 
         </SafeAreaView>
     );

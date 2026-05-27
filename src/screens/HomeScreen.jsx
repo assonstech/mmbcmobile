@@ -347,12 +347,22 @@ const HomeScreen = ({ navigation }) => {
             )}
 
             {isNonMember && (
-                <View style={styles.nonMemberLogoContainer}>
-                    <Image
-                        source={require("../assets/images/appLogo.png")}
-                        style={styles.nonMemberLogo}
-                        resizeMode="contain"
-                    />
+                <View style={styles.nonMemberCardContainer}>
+                    <View style={styles.nonMemberCardFrame}>
+                        <Image
+                            source={require("../assets/images/Front.png")}
+                            style={styles.nonMemberCardImage}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.nonMemberCardOverlay}>
+                            <Text style={styles.nonMemberCardOverlayTitle}>
+                                Member card preview
+                            </Text>
+                            <Text style={styles.nonMemberCardOverlayText}>
+                                Join MMBC to activate your digital card.
+                            </Text>
+                        </View>
+                    </View>
                 </View>
             )}
 
@@ -450,14 +460,41 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    nonMemberLogoContainer: {
-        paddingTop: 40,
+    nonMemberCardContainer: {
+        paddingTop: 16,
+        marginHorizontal: 16,
+        alignItems: "center",
+    },
+    nonMemberCardFrame: {
+        width: "100%",
+        height: 202,
         alignItems: "center",
         justifyContent: "center",
     },
-    nonMemberLogo: {
-        width: 174,
-        height: 174,
+    nonMemberCardImage: {
+        width: "100%",
+        height: "100%",
+    },
+    nonMemberCardOverlay: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 28,
+    },
+    nonMemberCardOverlayTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#884600",
+        textAlign: "center",
+    },
+    nonMemberCardOverlayText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        lineHeight: 19,
+        color: colors.text,
+        textAlign: "center",
+        marginTop: 6,
     },
     cardContainer: {
         position: "absolute",
