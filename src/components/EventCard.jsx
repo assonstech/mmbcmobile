@@ -33,6 +33,12 @@ const EventCard = ({ item, onPress }) => {
                         onLoadEnd={() => setLoading(false)}
                     />
                 )}
+
+                {item.isExpired && (
+                    <View style={styles.expiredBadge}>
+                        <Text style={styles.expiredBadgeText}>Expired</Text>
+                    </View>
+                )}
             </View>
 
             <View style={styles.content}>
@@ -122,6 +128,23 @@ const styles = StyleSheet.create({
         left: "50%",
         transform: [{ translateX: -12 }, { translateY: -12 }],
         zIndex: 1,
+    },
+    expiredBadge: {
+        position: "absolute",
+        top: 12,
+        right: 12,
+        minHeight: 30,
+        borderRadius: 15,
+        justifyContent: "center",
+        backgroundColor: "#B42318",
+        paddingHorizontal: 12,
+        zIndex: 2,
+    },
+    expiredBadgeText: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#FFFFFF",
     },
     content: {
         paddingHorizontal: 16,

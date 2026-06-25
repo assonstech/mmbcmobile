@@ -52,7 +52,7 @@ const HomeScreen = ({ navigation }) => {
 
 
     const lastTranslateY = useRef(containerOffset);
-    const chips = ["All", "In-person", "Online", "Registered", "Free", "Paid"];
+    const chips = ["All", "Upcoming", "Expired", "In-person", "Online", "Registered", "Free", "Paid"];
 
     // ------------------- PanResponder -------------------
     const panResponder = useRef(
@@ -113,6 +113,10 @@ const HomeScreen = ({ navigation }) => {
 
                 const formattedEvents = visibleEvents.map((item) => {
                     const eventDate = new Date(item.eventDate);
+                    const eventDay = new Date(eventDate);
+                    const today = new Date();
+                    eventDay.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
                     const formattedStart = formatTimeTo12Hour(item.startTime);
                     const formattedEnd = formatTimeTo12Hour(item.endTime);
                     const memberPrice = item.eventFee ?? 0;
@@ -150,7 +154,16 @@ const HomeScreen = ({ navigation }) => {
                         rule: item.eventRule ?? "",
                         isRegistered: item.isRegistered ?? 0,
                         isPaid: item.isPaid ?? false,
+                        isExpired:
+                            !Number.isNaN(eventDay.getTime()) && today >= eventDay,
                     };
+                }).sort((firstEvent, secondEvent) => {
+                    const firstDate = firstEvent.dateObj.getTime();
+                    const secondDate = secondEvent.dateObj.getTime();
+
+                    if (Number.isNaN(firstDate)) return 1;
+                    if (Number.isNaN(secondDate)) return -1;
+                    return secondDate - firstDate;
                 });
                 setEvents(formattedEvents);
                 setFilteredEvents(formattedEvents);
@@ -239,18 +252,24 @@ const HomeScreen = ({ navigation }) => {
 
         switch (chip) {
             case 1:
-                filtered = filtered.filter(item => item.eventType === "inPerson");
+                filtered = filtered.filter(item => !item.isExpired);
                 break;
             case 2:
-                filtered = filtered.filter(item => item.eventType === "online");
+                filtered = filtered.filter(item => item.isExpired);
                 break;
             case 3:
-                filtered = filtered.filter(item => item.isRegistered === 1);
+                filtered = filtered.filter(item => item.eventType === "inPerson");
                 break;
             case 4:
-                filtered = filtered.filter(item => item.price === 0);
+                filtered = filtered.filter(item => item.eventType === "online");
                 break;
             case 5:
+                filtered = filtered.filter(item => item.isRegistered === 1);
+                break;
+            case 6:
+                filtered = filtered.filter(item => item.price === 0);
+                break;
+            case 7:
                 filtered = filtered.filter(item => item.isPaid === true);
                 break;
 
@@ -301,11 +320,11 @@ const HomeScreen = ({ navigation }) => {
         navigation.navigate(Screen.EventDetailScreen, { item });
     }, [navigation]);
 
-    const renderEventItem = ({ item }) => (
+    const renderEventItem = useCallback(({ item }) => (
         <EventCard item={item} onPress={() => onClickEvent(item)} />
-    );
+    ), [onClickEvent]);
 
-    const renderChipItem = ({ item, index }) => {
+    const renderChipItem = useCallback(({ item, index }) => {
         const isSelected = selectedChip === index;
         return (
             <TouchableOpacity
@@ -318,7 +337,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.chipText}>{item}</Text>
             </TouchableOpacity>
         );
-    };
+    }, [applyFilters, selectedChip, selectedDate]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -417,6 +436,11 @@ const HomeScreen = ({ navigation }) => {
                         renderItem={renderEventItem}
                         contentContainerStyle={{ paddingBottom: isExpanded ? 110 : Platform.OS === 'android' ? 360 : 400, paddingHorizontal: 16 }}
                         ItemSeparatorComponent={() => <View style={{ height: 25 }} />}
+                        initialNumToRender={3}
+                        maxToRenderPerBatch={3}
+                        updateCellsBatchingPeriod={50}
+                        windowSize={5}
+                        removeClippedSubviews={Platform.OS === "android"}
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         ListEmptyComponent={

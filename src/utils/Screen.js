@@ -29,7 +29,6 @@ const Screen = {
   DeleteAccount: 'deleteAccount',
   ReceiptInformation : 'receiptInfromation',
   SeasonalPromotionDetail: 'seasonalPromotionDetail',
-  PdfViewer: 'pdfViewer',
   NewsletterByDate: 'newsletterByDate',
   NewsletterDetail: 'newsletterDetail',
   MouPartners: 'mouPartners',

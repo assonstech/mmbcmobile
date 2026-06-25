@@ -24,6 +24,7 @@ import LightColors from "../colors/light";
 import EndoVieo from "../assets/icons/endo-video.png";
 import EndoCalendar from "../assets/icons/endo-calendar.png";
 import EndoClock from "../assets/icons/endo-clock.png";
+import ExpiredInfoIcon from "../assets/icons/expired_info.png";
 
 import { fetchEventDetail, unRegisterEvent } from "../controllers/EventController";
 import { formattedPrice, getFullImageUrl } from "../common/HttpSerivce";
@@ -162,7 +163,11 @@ const EventDetailScreen = ({ navigation, route }) => {
 
     useEffect(() => {
         startShimmer();
-        if (item?.id) fetchEventDetailById(true);
+        if (item?.id) {
+            fetchEventDetailById(true);
+        } else {
+            setLoading(false);
+        }
     }, [fetchEventDetailById, item?.id, startShimmer]);
 
     const unRegister = async () => {
@@ -408,9 +413,37 @@ const EventDetailScreen = ({ navigation, route }) => {
 
     if (!eventDetail) {
         return (
-            <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-                <Text>No event details found.</Text>
-            </View>
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerContainer}>
+                    <HeaderWithActions
+                        title="Event Detail"
+                        onBackPress={() => navigation.goBack()}
+                    />
+                </View>
+
+                <View style={styles.notFoundContainer}>
+                    <View style={styles.notFoundIconWrapper}>
+                        <Image
+                            source={EndoCalendar}
+                            style={styles.notFoundIcon}
+                            resizeMode="contain"
+                        />
+                    </View>
+
+                    <Text style={styles.notFoundTitle}>Event not found</Text>
+                    <Text style={styles.notFoundDescription}>
+                        This event may have been removed or is no longer available.
+                    </Text>
+
+                    <TouchableOpacity
+                        style={styles.notFoundButton}
+                        onPress={() => navigation.goBack()}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={styles.notFoundButtonText}>Back to Home</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         );
     }
 
@@ -424,7 +457,7 @@ const EventDetailScreen = ({ navigation, route }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <View style={styles.headerContainer}>
                 <HeaderWithActions title="Event Detail" onBackPress={() => navigation.goBack()} />
             </View>
 
@@ -485,7 +518,7 @@ const EventDetailScreen = ({ navigation, route }) => {
 
                     {eventDetail?.isRegistered &&
                         eventDetail?.registration &&
-                        !eventDetail?.registration?.isPaid && (
+                        eventDetail?.registration?.isPaid && (
                             <TouchableOpacity
                                 style={styles.receiptButton}
                                 onPress={handleReceiptInformation}
@@ -586,12 +619,17 @@ const EventDetailScreen = ({ navigation, route }) => {
                 </View>
             )}
 
-            <Modal visible={showExpiredModal} transparent animationType="fade">
+            <Modal
+                visible={showExpiredModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowExpiredModal(false)}
+            >
                 <View style={styles.modalOverlay}>
                     <View style={styles.expiredModalCard}>
                         <View style={styles.expiredIconWrapper}>
                             <Image
-                                source={require("../assets/icons/expired_info.png")}
+                                source={ExpiredInfoIcon}
                                 style={styles.expiredIconImage}
                                 resizeMode="contain"
                             />
@@ -603,15 +641,24 @@ const EventDetailScreen = ({ navigation, route }) => {
                             You can’t register for this event because it is expired.
                         </Text>
 
-                        <TouchableOpacity
-                            style={styles.expiredButton}
-                            onPress={() => {
-                                setShowExpiredModal(false);
-                                navigation.goBack();
-                            }}
-                        >
-                            <Text style={styles.expiredButtonText}>Back to Home</Text>
-                        </TouchableOpacity>
+                        <View style={styles.expiredButtonGroup}>
+                            <TouchableOpacity
+                                style={styles.expiredViewButton}
+                                onPress={() => setShowExpiredModal(false)}
+                            >
+                                <Text style={styles.expiredViewButtonText}>View details</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.expiredButton}
+                                onPress={() => {
+                                    setShowExpiredModal(false);
+                                    navigation.goBack();
+                                }}
+                            >
+                                <Text style={styles.expiredButtonText}>Back to Home</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -688,6 +735,72 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
+    },
+
+    headerContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+    },
+
+    notFoundContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 32,
+        paddingBottom: 80,
+    },
+
+    notFoundIconWrapper: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F3F4F6",
+        marginBottom: 22,
+    },
+
+    notFoundIcon: {
+        width: 38,
+        height: 38,
+        tintColor: "#6B7280",
+    },
+
+    notFoundTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 22,
+        lineHeight: 30,
+        fontWeight: "700",
+        color: colors.text,
+        textAlign: "center",
+        marginBottom: 8,
+    },
+
+    notFoundDescription: {
+        maxWidth: 300,
+        fontFamily: FontFamily.Medium,
+        fontSize: 15,
+        lineHeight: 22,
+        color: "#6B7280",
+        textAlign: "center",
+        marginBottom: 26,
+    },
+
+    notFoundButton: {
+        minWidth: 190,
+        minHeight: 50,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+        backgroundColor: colors.button,
+    },
+
+    notFoundButtonText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.text,
     },
 
     imageContainer: {
@@ -903,6 +1016,26 @@ const styles = StyleSheet.create({
         color: "#6F6582",
         marginBottom: 24,
         lineHeight: 24,
+    },
+
+    expiredButtonGroup: {
+        width: "100%",
+        gap: 10,
+    },
+
+    expiredViewButton: {
+        width: "100%",
+        borderRadius: 999,
+        paddingVertical: 15,
+        alignItems: "center",
+        backgroundColor: colors.button,
+    },
+
+    expiredViewButtonText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.text,
     },
 
     expiredButton: {

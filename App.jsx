@@ -28,7 +28,6 @@ import NetworkErrorScreen from './src/screens/NetworkErrorScreen'
 import DeleteAccountScreen from './src/screens/DeleteAccountScreen'
 import ReceiptInformationScreen from './src/screens/ReceiptInformationScreen'
 import SeasonalPromotionDetailScreen from './src/screens/SeasonalPromotionDetailScreen'
-import PdfViewerScreen from './src/screens/PdfViewerScreen'
 import NewsletterByDateScreen from './src/screens/NewsletterByDateScreen'
 import NewsletterDetailScreen from './src/screens/NewsletterDetailScreen'
 import MouPartnersScreen from './src/screens/MouPartnersScreen'
@@ -119,7 +118,6 @@ export default function App() {
           <Stack.Screen name={Screen.DeleteAccount} component={DeleteAccountScreen} />
           <Stack.Screen name={Screen.ReceiptInformation} component={ReceiptInformationScreen} />
           <Stack.Screen name={Screen.SeasonalPromotionDetail} component={SeasonalPromotionDetailScreen} />
-          <Stack.Screen name={Screen.PdfViewer} component={PdfViewerScreen} />
           <Stack.Screen name={Screen.NewsletterByDate} component={NewsletterByDateScreen} />
           <Stack.Screen name={Screen.NewsletterDetail} component={NewsletterDetailScreen} />
           <Stack.Screen name={Screen.MouPartners} component={MouPartnersScreen} />

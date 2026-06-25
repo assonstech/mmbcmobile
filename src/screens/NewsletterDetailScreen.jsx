@@ -17,9 +17,9 @@ import { FontFamily } from "../styles/fontStyle";
 import { fetchNewsletterById } from "../controllers/NewsletterController";
 import { getFullImageUrl } from "../common/HttpSerivce";
 import { timeAgo } from "../utils/timeHelper";
-import Screen from "../utils/Screen";
 import CalendarIcon from "../assets/icons/endo-calendar.png";
 import ImageViewing from "react-native-image-viewing";
+import DocumentOverlay from "../components/DocumentOverlay";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -29,6 +29,7 @@ const NewsletterDetailScreen = ({ navigation, route }) => {
     const [newsletter, setNewsletter] = useState(item || null);
     const [imageLoading, setImageLoading] = useState(false);
     const [imageVisible, setImageVisible] = useState(false);
+    const [documentOverlay, setDocumentOverlay] = useState(null);
 
     useEffect(() => {
         const loadDetail = async () => {
@@ -60,35 +61,35 @@ const NewsletterDetailScreen = ({ navigation, route }) => {
             >
                 {newsletter?.imageUrl && (
                     <>
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        style={styles.imageWrapper}
-                        onPress={() => setImageVisible(true)}
-                    >
-                        {imageLoading && (
-                            <ActivityIndicator
-                                size="large"
-                                color="#0000ff"
-                                style={styles.imageLoader}
-                            />
-                        )}
-                        <ImageBackground
-                            source={{ uri: getFullImageUrl(newsletter.imageUrl) }}
-                            style={styles.heroImage}
-                            resizeMode="cover"
-                            onLoadStart={() => setImageLoading(true)}
-                            onLoadEnd={() => setImageLoading(false)}
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            style={styles.imageWrapper}
+                            onPress={() => setImageVisible(true)}
                         >
-                            <View style={styles.imageOverlay} />
-                        </ImageBackground>
-                    </TouchableOpacity>
+                            {imageLoading && (
+                                <ActivityIndicator
+                                    size="large"
+                                    color="#0000ff"
+                                    style={styles.imageLoader}
+                                />
+                            )}
+                            <ImageBackground
+                                source={{ uri: getFullImageUrl(newsletter.imageUrl) }}
+                                style={styles.heroImage}
+                                resizeMode="cover"
+                                onLoadStart={() => setImageLoading(true)}
+                                onLoadEnd={() => setImageLoading(false)}
+                            >
+                                <View style={styles.imageOverlay} />
+                            </ImageBackground>
+                        </TouchableOpacity>
 
-                    <ImageViewing
-                        images={[{ uri: getFullImageUrl(newsletter.imageUrl) }]}
-                        imageIndex={0}
-                        visible={imageVisible}
-                        onRequestClose={() => setImageVisible(false)}
-                    />
+                        <ImageViewing
+                            images={[{ uri: getFullImageUrl(newsletter.imageUrl) }]}
+                            imageIndex={0}
+                            visible={imageVisible}
+                            onRequestClose={() => setImageVisible(false)}
+                        />
                     </>
                 )}
 
@@ -113,15 +114,24 @@ const NewsletterDetailScreen = ({ navigation, route }) => {
                     <TouchableOpacity
                         activeOpacity={0.85}
                         style={styles.fileButton}
-                        onPress={() => navigation.push(Screen.PdfViewer, {
-                            url: fileUrl,
-                            title: newsletter?.title || "Document",
-                            openedAt: Date.now(),
-                        })}
+                        onPress={() =>
+                            setDocumentOverlay({
+                                url: fileUrl,
+                                title: newsletter?.title || "Document",
+                            })
+                        }
                     >
                         <Text style={styles.fileButtonText}>View File</Text>
                     </TouchableOpacity>
                 )}
+
+
+                <DocumentOverlay
+                    visible={!!documentOverlay}
+                    url={documentOverlay?.url}
+                    title={documentOverlay?.title}
+                    onClose={() => setDocumentOverlay(null)}
+                />
             </ScrollView>
         </SafeAreaView>
     );

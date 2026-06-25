@@ -16,8 +16,8 @@ import Screen from '../utils/Screen';
 
 // const BASE_Image_URL = 'https://assonstech-001-site2.ktempurl.com'
 
-const BASE_URL = 'http://assonstech-001-site6.ktempurl.com/api'
-const BASE_Image_URL = 'http://assonstech-001-site6.ktempurl.com/'
+const BASE_URL = 'https://assonstech-001-site6.ktempurl.com/api'
+const BASE_Image_URL = 'https://assonstech-001-site6.ktempurl.com/'
 
 
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
@@ -80,7 +80,9 @@ apiClient.interceptors.response.use(
     if (error.message === "Network Error") {
       navigate(Screen.NetworkError);
     }
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes('/member/login');
+
+    if (error.response?.status === 401 && !isLoginRequest) {
       await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
       navigate(Screen.Welcome);
     }

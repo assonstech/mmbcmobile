@@ -23,6 +23,7 @@ const ReceiptInformationScreen = ({ navigation, route }) => {
         eventDate,
         companyName,
         paymentType,
+        isPaid,
     } = route?.params || {};
 
     const formatDate = (date) => {
@@ -48,31 +49,29 @@ const ReceiptInformationScreen = ({ navigation, route }) => {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.topRow}>
-                    <View style={styles.infoCard}>
-                        <View style={styles.infoTopRow}>
-                            <Text style={styles.infoLabel}>Serial No.</Text>
-                            <Text style={styles.hashText}>#</Text>
+                <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                        <View style={styles.receiptTitleBlock}>
+                            <Text style={styles.receiptLabel}>Receipt no.</Text>
+                            <Text style={styles.receiptNumber}>
+                                #{registrationId || eventId || "-"}
+                            </Text>
                         </View>
 
-                        <Text style={styles.infoValue}>
-                            {registrationId || "-"}
-                        </Text>
+                        <View style={styles.statusPill}>
+                            <Text style={styles.statusText}>
+                                {isPaid ? "Paid" : "Pending"}
+                            </Text>
+                        </View>
                     </View>
 
-                    <View style={styles.infoCard}>
-                        <View style={styles.infoTopRow}>
-                            <Text style={styles.infoLabel}>Date</Text>
+                    <Text style={styles.summaryTitle} numberOfLines={2}>
+                        {eventTitle || "Event payment"}
+                    </Text>
 
-                            <Image
-                                source={CalendarIcon}
-                                style={styles.topCardIcon}
-                            />
-                        </View>
-
-                        <Text style={styles.infoValue}>
-                            {formatDate(eventDate)}
-                        </Text>
+                    <View style={styles.dateRow}>
+                        <Image source={CalendarIcon} style={styles.dateIcon} />
+                        <Text style={styles.dateText}>{formatDate(eventDate)}</Text>
                     </View>
                 </View>
 
@@ -80,11 +79,6 @@ const ReceiptInformationScreen = ({ navigation, route }) => {
                     <ReceiptItem
                         label="Received from"
                         value={companyName || "-"}
-                    />
-
-                    <ReceiptItem
-                        label="Amount in words"
-                        value="-"
                     />
 
                     <ReceiptItem
@@ -101,30 +95,13 @@ const ReceiptInformationScreen = ({ navigation, route }) => {
                         label="Paid by"
                         value={paymentType || "Cash"}
                     />
+                </View>
 
-                    <ReceiptItem
-                        label="Amount"
-                        value={
-                            eventFee
-                                ? `${formattedPrice(eventFee)} MMK`
-                                : "Free"
-                        }
-                    />
-
-                    <View style={{ marginTop: 8 }}>
-                        <Text style={styles.itemLabel}>Received by</Text>
-
-                        <Text style={styles.signature}>𝓓</Text>
-                    </View>
-
-                    <View style={styles.qrContainer}>
-                        <Image
-                            source={{
-                                uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MMBC-Receipt-${registrationId || eventId}`,
-                            }}
-                            style={styles.qrImage}
-                        />
-                    </View>
+                <View style={styles.totalCard}>
+                    <Text style={styles.amountLabel}>Total amount</Text>
+                    <Text style={styles.amountValue}>
+                        {eventFee ? `${formattedPrice(eventFee)} MMK` : "Free"}
+                    </Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -143,10 +120,7 @@ const ReceiptItem = ({ label, value }) => {
 export default ReceiptInformationScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#FFFDF5",
-    },
+    container: { flex: 1, backgroundColor: "#F6F7F9" },
 
     headerWrapper: {
         paddingHorizontal: 16,
@@ -154,98 +128,126 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
-        paddingHorizontal: 18,
-        paddingBottom: 40,
+        paddingHorizontal: 16,
+        paddingBottom: 48,
     },
-
-    topRow: {
+    summaryCard: {
+        backgroundColor: "white",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        padding: 16,
+        marginBottom: 14,
+    },
+    summaryHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: 20,
-    },
-
-    infoCard: {
-        width: "48%",
-        backgroundColor: "#F7DFC4",
-        borderRadius: 24,
-        padding: 18,
-    },
-
-    infoTopRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 10,
+        justifyContent: "space-between",
+        marginBottom: 14,
     },
-
-    infoLabel: {
+    receiptTitleBlock: {
+        flex: 1,
+        paddingRight: 12,
+    },
+    receiptLabel: {
         fontFamily: FontFamily.Medium,
-        fontSize: 14,
+        fontSize: 13,
         color: "#6B7280",
-        fontWeight: "500",
+        marginBottom: 4,
     },
-
-    hashText: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#7C2D12",
-    },
-
-    topCardIcon: {
-        width: 22,
-        height: 22,
-        resizeMode: "contain",
-        tintColor: "#7C2D12",
-    },
-
-    infoValue: {
+    receiptNumber: {
         fontFamily: FontFamily.SemiBold,
         fontSize: 18,
+        color: "#111827",
         fontWeight: "700",
-        color: "#4A1D0C",
+    },
+    statusPill: {
+        minHeight: 32,
+        borderRadius: 9999,
+        backgroundColor: "#EEF2F7",
+        justifyContent: "center",
+        paddingHorizontal: 14,
+    },
+    statusText: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 13,
+        color: "#374151",
+        fontWeight: "600",
+    },
+    dateRow: {
+        marginTop: 14,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: "#EEF0F3",
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    dateIcon: {
+        width: 17,
+        height: 17,
+        resizeMode: "contain",
+        tintColor: "#374151",
+        marginRight: 7,
+    },
+    dateText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        color: "#374151",
+    },
+    summaryTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 18,
+        lineHeight: 26,
+        fontWeight: "700",
+        color: "#111827",
     },
 
     receiptCard: {
-        backgroundColor: "#F9EAEA",
-        borderRadius: 34,
-        padding: 24,
+        backgroundColor: "white",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        marginBottom: 14,
     },
 
     itemContainer: {
-        marginBottom: 28,
+        paddingVertical: 13,
+        borderBottomWidth: 1,
+        borderBottomColor: "#EEF0F3",
     },
 
     itemLabel: {
         fontFamily: FontFamily.Medium,
-        fontSize: 15,
+        fontSize: 13,
         color: "#6B7280",
-        marginBottom: 10,
+        marginBottom: 6,
         fontWeight: "500",
     },
 
     itemValue: {
         fontFamily: FontFamily.SemiBold,
-        fontSize: 18,
-        color: "#2B0D0D",
+        fontSize: 16,
+        color: "#111827",
+        fontWeight: "600",
+        lineHeight: 23,
+    },
+    totalCard: {
+        backgroundColor: "#111827",
+        borderRadius: 14,
+        padding: 18,
+    },
+    amountLabel: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        color: "#D1D5DB",
+        marginBottom: 6,
+    },
+    amountValue: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 22,
         fontWeight: "700",
-        lineHeight: 30,
-    },
-
-    signature: {
-        fontSize: 90,
-        color: "#2B0D0D",
-        marginTop: -10,
-        marginBottom: -10,
-    },
-
-    qrContainer: {
-        alignItems: "center",
-        marginTop: 12,
-    },
-
-    qrImage: {
-        width: 130,
-        height: 130,
-        borderRadius: 12,
+        color: "white",
     },
 });

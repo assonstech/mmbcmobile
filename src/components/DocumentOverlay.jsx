@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -8,90 +8,171 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Pdf from "react-native-pdf";
 import { WebView } from "react-native-webview";
+
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
+
+const PDF_EXTENSIONS = ["pdf"];
 const WORD_EXTENSIONS = ["doc", "docx"];
 
 const DocumentOverlay = ({ visible, url, title = "Document", onClose }) => {
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [reloadKey, setReloadKey] = useState(Date.now());
-  const [showWebView, setShowWebView] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const helpTimerRef = useRef(null);
+  const [pdfDataUri, setPdfDataUri] = useState("");
 
-  useEffect(() => {
-    if (!visible) {
-      clearHelpTimer(helpTimerRef);
-      setShowHelp(false);
-      return;
+  const documentUrl = useMemo(() => normalizeDocumentUrl(url), [url]);
+  const extension = useMemo(() => getFileExtension(documentUrl), [documentUrl]);
+  const isPdf = PDF_EXTENSIONS.includes(extension);
+
+  const viewerUrl = useMemo(() => {
+    if (!documentUrl || isPdf) return "";
+
+    if (WORD_EXTENSIONS.includes(extension)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+        documentUrl
+      )}`;
     }
 
-    clearHelpTimer(helpTimerRef);
-    setLoading(true);
-    setHasError(false);
-    setShowHelp(false);
-    recreateViewer();
-  }, [visible, url]);
+    return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
+      documentUrl
+    )}`;
+  }, [documentUrl, extension, isPdf]);
 
-  const viewerUrl = useMemo(() => getDocumentViewerUrl(url), [url]);
+  const pdfSource = useMemo(() => {
+    if (!pdfDataUri || !isPdf) return null;
 
-  const recreateViewer = () => {
-    clearHelpTimer(helpTimerRef);
-    setLoading(true);
-    setHasError(false);
-    setShowHelp(false);
-    setShowWebView(false);
+    return {
+      uri: pdfDataUri,
+    };
+  }, [pdfDataUri, isPdf]);
 
-    setTimeout(() => {
+  useEffect(() => {
+    if (visible) {
+      console.log("Document URL:", documentUrl);
+
+      setHasError(false);
+      setPdfDataUri("");
       setReloadKey(Date.now());
-      setShowWebView(true);
-    }, 80);
-  };
+
+      if (!isPdf) {
+        setLoading(true);
+      }
+    } else {
+      setLoading(false);
+      setHasError(false);
+      setPdfDataUri("");
+    }
+  }, [visible, documentUrl, isPdf]);
+
+  useEffect(() => {
+    if (!visible || !documentUrl || !isPdf) return;
+
+    let isActive = true;
+
+    const loadPdf = async () => {
+      try {
+        setLoading(true);
+        setHasError(false);
+
+        const response = await fetch(documentUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/pdf",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`PDF request failed: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const dataUri = await readBlobAsPdfDataUri(blob);
+
+        if (isActive) {
+          setPdfDataUri(dataUri);
+        }
+      } catch (error) {
+        console.log("PDF download error:", error);
+
+        if (isActive) {
+          setLoading(false);
+          setHasError(true);
+        }
+      }
+    };
+
+    loadPdf();
+
+    return () => {
+      isActive = false;
+    };
+  }, [visible, documentUrl, isPdf, reloadKey]);
 
   const retry = () => {
-    recreateViewer();
+    setLoading(true);
+    setHasError(false);
+    setReloadKey(Date.now());
   };
 
   const close = () => {
-    clearHelpTimer(helpTimerRef);
-    setShowWebView(false);
     setLoading(false);
     setHasError(false);
-    setShowHelp(false);
     setReloadKey(Date.now());
     onClose?.();
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={close}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
       <SafeAreaView style={styles.backdrop}>
         <View style={styles.panel}>
           <View style={styles.header}>
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.closeButton}
-              onPress={close}
-            >
+
+            <TouchableOpacity activeOpacity={0.85} style={styles.closeButton} onPress={close}>
               <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.viewer}>
-            {!!viewerUrl && showWebView && (
+            {!documentUrl && (
+              <View style={styles.errorOverlay}>
+                <Text style={styles.errorText}>Unable to load document.</Text>
+              </View>
+            )}
+
+            {!!pdfSource && !hasError && (
+              <Pdf
+                key={`${documentUrl}-${reloadKey}`}
+                source={pdfSource}
+                style={styles.pdf}
+                trustAllCerts={false}
+                enablePaging={false}
+                enableAnnotationRendering
+                onLoadProgress={() => {
+                  setLoading(true);
+                }}
+                onLoadComplete={() => {
+                  setLoading(false);
+                }}
+                onError={(error) => {
+                  console.log("PDF render error:", error);
+                  setLoading(false);
+                  setHasError(true);
+                }}
+              />
+            )}
+
+            {!!viewerUrl && !hasError && (
               <WebView
                 key={`${viewerUrl}-${reloadKey}`}
                 source={{ uri: viewerUrl }}
@@ -104,23 +185,23 @@ const DocumentOverlay = ({ visible, url, title = "Document", onClose }) => {
                 originWhitelist={["*"]}
                 setSupportMultipleWindows={false}
                 thirdPartyCookiesEnabled
+                allowsInlineMediaPlayback
                 onLoadStart={() => {
-                  clearHelpTimer(helpTimerRef);
                   setLoading(true);
                   setHasError(false);
-                  setShowHelp(false);
                 }}
                 onLoadEnd={() => {
                   setLoading(false);
-                  helpTimerRef.current = setTimeout(() => {
-                    setShowHelp(true);
-                  }, 1200);
                 }}
-                onError={() => {
-                  clearHelpTimer(helpTimerRef);
+                onError={(error) => {
+                  console.log("WebView error:", error.nativeEvent);
                   setLoading(false);
                   setHasError(true);
-                  setShowHelp(false);
+                }}
+                onHttpError={(error) => {
+                  console.log("WebView HTTP error:", error.nativeEvent);
+                  setLoading(false);
+                  setHasError(true);
                 }}
               />
             )}
@@ -134,30 +215,10 @@ const DocumentOverlay = ({ visible, url, title = "Document", onClose }) => {
             {hasError && (
               <View style={styles.errorOverlay}>
                 <Text style={styles.errorText}>Unable to load document.</Text>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.retryButton}
-                  onPress={retry}
-                >
+
+                <TouchableOpacity activeOpacity={0.85} style={styles.retryButton} onPress={retry}>
                   <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-
-            {showHelp && !hasError && (
-              <View style={styles.helpOverlay} pointerEvents="box-none">
-                <View style={styles.helpBox}>
-                  <Text style={styles.helpText}>
-                    If the document is blank, tap Retry.
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.helpRetryButton}
-                    onPress={retry}
-                  >
-                    <Text style={styles.helpRetryText}>Retry</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             )}
           </View>
@@ -167,29 +228,35 @@ const DocumentOverlay = ({ visible, url, title = "Document", onClose }) => {
   );
 };
 
-const clearHelpTimer = (timerRef) => {
-  if (timerRef.current) {
-    clearTimeout(timerRef.current);
-    timerRef.current = null;
-  }
-};
+const normalizeDocumentUrl = (fileUrl) => {
+  if (!fileUrl) return "";
 
-const getDocumentViewerUrl = (url) => {
-  if (!url) return "";
-  const extension = getFileExtension(url);
-
-  if (WORD_EXTENSIONS.includes(extension)) {
-    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
-  }
-
-  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+  return encodeURI(String(fileUrl).trim());
 };
 
 const getFileExtension = (fileUrl) => {
-  const cleanUrl = String(fileUrl).split("?")[0].split("#")[0];
+  const cleanUrl = String(fileUrl || "").split("?")[0].split("#")[0];
   const fileName = cleanUrl.split("/").pop() || "";
-  return fileName.includes(".") ? fileName.split(".").pop().toLowerCase() : "";
+
+  return fileName.includes(".")
+    ? fileName.split(".").pop().toLowerCase()
+    : "";
 };
+
+const readBlobAsPdfDataUri = (blob) => (
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      const result = String(reader.result || "");
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+
+      resolve(`data:application/pdf;base64,${base64}`);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  })
+);
 
 export default memo(DocumentOverlay);
 
@@ -244,6 +311,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
+  pdf: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "white",
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
@@ -271,57 +344,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
+    marginTop: 10,
   },
   retryText: {
     fontFamily: FontFamily.Medium,
     fontSize: 14,
-    color: "white",
-  },
-  helpOverlay: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 18,
-    alignItems: "center",
-  },
-  helpBox: {
-    width: "100%",
-    maxWidth: 360,
-    minHeight: 48,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.96)",
-    borderWidth: 1,
-    borderColor: "#E4D4D4",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  helpText: {
-    flex: 1,
-    fontFamily: FontFamily.Medium,
-    fontSize: 13,
-    color: colors.text,
-    marginRight: 10,
-  },
-  helpRetryButton: {
-    minWidth: 74,
-    minHeight: 34,
-    borderRadius: 9999,
-    backgroundColor: "#5A1E08",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  helpRetryText: {
-    fontFamily: FontFamily.Medium,
-    fontSize: 13,
     color: "white",
   },
 });

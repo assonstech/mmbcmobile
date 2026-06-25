@@ -53,12 +53,17 @@ export default function LoginScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
+        if (alertVisible) {
+          setAlertVisible(false);
+          return true;
+        }
+
         navigation.navigate(Screen.Welcome);
         return true;
       };
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [navigation])
+    }, [alertVisible, navigation])
   );
 
   // Login logic
@@ -216,6 +221,7 @@ export default function LoginScreen() {
             message={alertMessage}
             confirmText="OK"
             onConfirm={() => setAlertVisible(false)}
+            onCancel={() => setAlertVisible(false)}
           />
 
           {/* Loader overlay */}
