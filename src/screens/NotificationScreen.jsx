@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,17 +14,24 @@ import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
 import NotificationIcon from "../assets/icons/notification.png";
-import { fetchNotifications } from "../controllers/NotificationController";
+import {
+  fetchGeneralNotifications,
+  fetchPaymentNotifications,
+} from "../controllers/NotificationController";
 import Screen from "../utils/Screen";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 const PAGE_LIMIT = 10;
+const NOTIFICATION_TABS = {
+  GENERAL: "GENERAL",
+  PAYMENT: "PAYMENT",
+};
 
 const NotificationRow = ({ item, isLastInSection, onPress }) => (
   <TouchableOpacity
-    activeOpacity={item.eventId ? 0.85 : 1}
-    disabled={!item.eventId}
+    activeOpacity={item.canOpen ? 0.85 : 1}
+    disabled={!item.canOpen}
     style={[styles.row, isLastInSection && styles.rowLastInSection]}
     onPress={onPress}
   >
@@ -47,20 +54,31 @@ const NotificationRow = ({ item, isLastInSection, onPress }) => (
 
 const NotificationScreen = ({ navigation }) => {
   const [notifications, setNotifications] = useState([]);
+  const [activeTab, setActiveTab] = useState(NOTIFICATION_TABS.GENERAL);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const listRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   const loadNotifications = useCallback(async (nextPage = 1, shouldAppend = false) => {
+    const requestId = ++requestIdRef.current;
+
     if (shouldAppend) {
       setLoadingMore(true);
     } else {
       setLoading(true);
     }
 
-    const result = await fetchNotifications(nextPage, PAGE_LIMIT);
+    const fetchList = activeTab === NOTIFICATION_TABS.PAYMENT
+      ? fetchPaymentNotifications
+      : fetchGeneralNotifications;
+    const result = await fetchList(nextPage, PAGE_LIMIT);
+
+    if (requestId !== requestIdRef.current) return;
+
     const formatted = result.notifications.map(formatNotification);
 
     setNotifications((current) => (
@@ -70,7 +88,7 @@ const NotificationScreen = ({ navigation }) => {
     setTotalPages(result.pagination?.totalPages || 1);
     setLoading(false);
     setLoadingMore(false);
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     loadNotifications();
@@ -85,6 +103,41 @@ const NotificationScreen = ({ navigation }) => {
   const loadMore = () => {
     if (loading || loadingMore || page >= totalPages) return;
     loadNotifications(page + 1, true);
+  };
+
+  const handleTabPress = (tab) => {
+    setActiveTab(tab);
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
+  };
+
+  const openNotification = (item) => {
+    if (!item.referenceId) return;
+
+    switch (item.type) {
+      case "EVENT":
+      case "PAYMENT":
+        navigation.navigate(Screen.EventDetailScreen, {
+          item: { id: String(item.referenceId) },
+        });
+        break;
+      case "NEWSLETTER":
+        navigation.navigate(Screen.NewsletterDetail, {
+          item: { newsletterId: item.referenceId },
+        });
+        break;
+      case "SEASONALPROMOTION":
+        navigation.navigate(Screen.SeasonalPromotionDetail, {
+          item: { promotionId: item.referenceId },
+        });
+        break;
+      case "KNOWLEDGE":
+        navigation.navigate("Hub");
+        break;
+      default:
+        break;
+    }
   };
 
   const renderItem = ({ item, index }) => {
@@ -104,12 +157,7 @@ const NotificationScreen = ({ navigation }) => {
         <NotificationRow
           item={item}
           isLastInSection={isLastInSection}
-          onPress={() => {
-            if (!item.eventId) return;
-            navigation.navigate(Screen.EventDetailScreen, {
-              item: { id: String(item.eventId) },
-            });
-          }}
+          onPress={() => openNotification(item)}
         />
       </>
     );
@@ -121,12 +169,36 @@ const NotificationScreen = ({ navigation }) => {
         <Text style={styles.title}>Notifications</Text>
       </View>
 
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[
+            styles.tabButton,
+            activeTab === NOTIFICATION_TABS.GENERAL && styles.tabButtonActive,
+          ]}
+          onPress={() => handleTabPress(NOTIFICATION_TABS.GENERAL)}
+        >
+          <Text style={styles.tabText}>General</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[
+            styles.tabButton,
+            activeTab === NOTIFICATION_TABS.PAYMENT && styles.tabButtonActive,
+          ]}
+          onPress={() => handleTabPress(NOTIFICATION_TABS.PAYMENT)}
+        >
+          <Text style={styles.tabText}>Payment info</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.button} />
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={notifications}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
@@ -141,7 +213,11 @@ const NotificationScreen = ({ navigation }) => {
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No notifications available.</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === NOTIFICATION_TABS.PAYMENT
+                ? "No payment notifications available."
+                : "No notifications available."}
+            </Text>
           }
           ListFooterComponent={
             loadingMore ? (
@@ -163,7 +239,8 @@ const formatNotification = (item) => ({
   title: item.title || "-",
   description: item.description || "",
   type: (item.type || "EVENT").toUpperCase(),
-  eventId: item.eventId,
+  referenceId: item.referenceId || item.eventId,
+  canOpen: Boolean(item.referenceId || item.eventId),
   createdDate: item.createdDate,
   section: getDateSection(item.createdDate),
   time: formatTime(item.createdDate),
@@ -207,12 +284,34 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     marginTop: 28,
-    marginBottom: 6,
+    marginBottom: 16,
   },
   title: {
     fontFamily: FontFamily.SemiBold,
     fontSize: 20,
     fontWeight: "600",
+    color: colors.text,
+  },
+  tabRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  tabButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.itemSeparateColor,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: colors.button,
+  },
+  tabText: {
+    fontFamily: FontFamily.Medium,
+    fontSize: 14,
     color: colors.text,
   },
   listContent: {

@@ -17,6 +17,7 @@ import Screen from "../utils/Screen";
 import { sendOTP, verifyOTP } from "../controllers/OTPController";
 import CustomToast from "../components/CustomToast";
 import HttpSerivce from "../common/HttpSerivce";
+import { loginOneSignalWithToken } from "../notifications/useNotification";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -73,6 +74,7 @@ const VerificationScreen = ({ navigation, route }) => {
         if (token) {
           console.log("token",token)
           await HttpSerivce.setAccessToken(token);
+          loginOneSignalWithToken(token);
           await HttpSerivce.setIsDefaultPassword(isDefaultPassword); // or your value
           navigation.reset({
             index: 0,

@@ -1,8 +1,11 @@
 import http from "../common/HttpSerivce";
+import { getAccessTokenPayload } from "../utils/auth";
 
-export const fetchNotifications = async (page = 1, limit = 10) => {
+const fetchNotificationList = async (path, page = 1, limit = 10) => {
   try {
-    const res = await http.get("/notifications", { page, limit });
+    const payload = await getAccessTokenPayload();
+    const userId = payload?.memberId || payload?.userId || payload?.id;
+    const res = await http.get(path, { page, limit, userId });
 
     if (res.success && res.data) {
       return {
@@ -25,3 +28,11 @@ export const fetchNotifications = async (page = 1, limit = 10) => {
     return { notifications: [], pagination: null };
   }
 };
+
+export const fetchGeneralNotifications = (page = 1, limit = 10) => (
+  fetchNotificationList("/notifications/general", page, limit)
+);
+
+export const fetchPaymentNotifications = (page = 1, limit = 10) => (
+  fetchNotificationList("/notifications/payment", page, limit)
+);

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     Image,
     Platform,
@@ -21,6 +21,9 @@ import { useUserType } from "../utils/useUserType";
 import { removeNonMemberProfile } from "../utils/auth";
 import MemberDirectoryIcon from "../assets/icons/memberdirectory.png";
 import PartnerIcon from "../assets/icons/partner.png";
+import ArrowRightIcon from "../assets/icons/endo-arrow-right-01.png";
+import MemberOnlyIcon from "../assets/icons/memberonly.png";
+import { logoutOneSignal } from "../notifications/useNotification";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -34,20 +37,13 @@ const FieldCard = ({ icon, label, onPress, disabled }) => (
         activeOpacity={0.85}
     >
         <View style={styles.cardLeft}>
-            <Image source={icon} style={styles.cardIcon} />
-            <Text style={styles.label}>{label}</Text>
+            <Image source={icon} style={[styles.cardIcon, disabled && styles.cardIconDisabled]} />
+            <Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
         </View>
         <Image
-            source={require("../../src/assets/icons/endo-arrow-right-01.png")}
-            style={styles.arrowIcon}
+            source={disabled ? MemberOnlyIcon : ArrowRightIcon}
+            style={disabled ? styles.memberOnlyIcon : styles.arrowIcon}
         />
-        {disabled && (
-            <View style={styles.memberOnlyOverlay}>
-                <View style={styles.memberOnlyPill}>
-                    <Text style={styles.memberOnlyText}>Member only</Text>
-                </View>
-            </View>
-        )}
     </TouchableOpacity>
 );
 
@@ -70,7 +66,7 @@ const SkeletonBox = ({ width, height, borderRadius = 6, style }) => (
 
 /* ---------------------------- Main MoreScreen ---------------------------- */
 const MoreScreen = ({ navigation }) => {
-    const { isMember, isNonMember, loading: userTypeLoading } = useUserType();
+    const { isNonMember, loading: userTypeLoading } = useUserType();
     const [memberInfo, setMemberInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -86,6 +82,7 @@ const MoreScreen = ({ navigation }) => {
             await HttpSerivce.removeAccessToken("token");
             await HttpSerivce.removeIsDefaultPassword();
             await removeNonMemberProfile();
+            logoutOneSignal();
             navigation.reset({
                 index: 0,
                 routes: [{ name: Screen.Welcome }],
@@ -381,26 +378,18 @@ const styles = StyleSheet.create({
     },
     cardLeft: { flexDirection: "row", alignItems: "center" },
     cardIcon: { width: 28, height: 28, resizeMode: "contain", marginRight: 10 },
+    cardIconDisabled: {
+        opacity: 0.42,
+    },
     label: { fontFamily: FontFamily.Medium, fontSize: 16, color: colors.text },
+    labelDisabled: {
+        color: "#9C94A8",
+    },
     arrowIcon: { width: 20, height: 20, tintColor: colors.loginAccountColor },
-    memberOnlyOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(255,255,255,0.62)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    memberOnlyPill: {
-        minHeight: 28,
-        borderRadius: 9999,
-        backgroundColor: colors.button,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 12,
-    },
-    memberOnlyText: {
-        fontFamily: FontFamily.Medium,
-        fontSize: 12,
-        color: colors.text,
+    memberOnlyIcon: {
+        width: 34,
+        height: 34,
+        resizeMode: "contain",
     },
     button: {
         height: 56,

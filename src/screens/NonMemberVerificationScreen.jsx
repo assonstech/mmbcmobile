@@ -22,6 +22,7 @@ import {
 } from "../controllers/NonMemberController";
 import HttpSerivce from "../common/HttpSerivce";
 import { setNonMemberProfile } from "../utils/auth";
+import { loginOneSignalWithToken } from "../notifications/useNotification";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -122,6 +123,7 @@ const NonMemberVerificationScreen = ({ navigation, route }) => {
       if (isVerified) {
         if (token) {
           await HttpSerivce.setAccessToken(token);
+          loginOneSignalWithToken(token);
         }
         await setNonMemberProfile(responseData);
         setSuccessVisible(true);

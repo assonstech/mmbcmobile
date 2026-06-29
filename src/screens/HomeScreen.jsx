@@ -32,6 +32,19 @@ import { useUserType } from "../utils/useUserType";
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
+const isEventAfterRegisterCutoff = (eventDate) => {
+    if (!(eventDate instanceof Date) || Number.isNaN(eventDate.getTime())) return false;
+
+    const eventDay = new Date(eventDate);
+    const registerCutoffDay = new Date();
+
+    eventDay.setHours(0, 0, 0, 0);
+    registerCutoffDay.setHours(0, 0, 0, 0);
+    registerCutoffDay.setDate(registerCutoffDay.getDate() + 3);
+
+    return eventDay >= registerCutoffDay;
+};
+
 const HomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { isMember, isNonMember, loading: userTypeLoading } = useUserType();
@@ -252,7 +265,17 @@ const HomeScreen = ({ navigation }) => {
 
         switch (chip) {
             case 1:
-                filtered = filtered.filter(item => !item.isExpired);
+                filtered = filtered
+                    .filter(item => isEventAfterRegisterCutoff(item.dateObj))
+                    .sort((firstEvent, secondEvent) => {
+                        const firstDate = firstEvent.dateObj.getTime();
+                        const secondDate = secondEvent.dateObj.getTime();
+
+                        if (Number.isNaN(firstDate)) return 1;
+                        if (Number.isNaN(secondDate)) return -1;
+                        return firstDate - secondDate;
+                    })
+                    .slice(0, 3);
                 break;
             case 2:
                 filtered = filtered.filter(item => item.isExpired);

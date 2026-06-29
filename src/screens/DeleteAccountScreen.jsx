@@ -11,6 +11,7 @@ import DefaultButton from "../components/DefaultButton";
 import { updateAcccountDeleteStatus } from "../controllers/MemberController";
 import HttpSerivce from "../common/HttpSerivce";
 import Screen from "../utils/Screen";
+import { logoutOneSignal } from "../notifications/useNotification";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -64,6 +65,7 @@ const DeleteAccountScreen = () => {
             const response = await updateAcccountDeleteStatus(postBody);
             if (response?.success) {
                 await HttpSerivce.removeAccessToken();
+                logoutOneSignal();
                 // Correct way to reset & navigate to login screen
                 navigation.reset({
                     index: 0,
