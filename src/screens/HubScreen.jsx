@@ -624,19 +624,11 @@ const SeasonalPromotionCard = ({ item, onReadMore }) => {
 
 const formatPromotionListDate = (dateValue) => {
     if (!dateValue) return "";
-    const date = new Date(dateValue);
-    const formattedDate = date.toLocaleDateString("en-GB", {
+    return new Date(dateValue).toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
     });
-    const formattedTime = date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-    });
-
-    return `${formattedDate}, ${formattedTime}`;
 };
 
 

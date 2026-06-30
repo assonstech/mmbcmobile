@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
@@ -22,35 +23,116 @@ const colors = isDarkMode ? DarkColors : LightColors;
 
 const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
-    const [promotion, setPromotion] = useState(item || null);
+    const [promotion, setPromotion] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [documentOverlay, setDocumentOverlay] = useState(null);
 
     useEffect(() => {
+        let isActive = true;
+
         const loadDetail = async () => {
             const id = item?.seasonalPromotionId || item?.promotionId || item?.id;
-            if (!id) return;
+            if (!id) {
+                if (isActive) setLoading(false);
+                return;
+            }
 
             const detail = await fetchSeasonalPromotionById(id);
-            if (detail) {
-                setPromotion(detail);
+            console.log('dat',detail)
+            if (isActive) {
+                setPromotion(detail || null);
+                setLoading(false);
             }
         };
 
         loadDetail();
+
+        return () => {
+            isActive = false;
+        };
     }, [item]);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerWrapper}>
+                    <HeaderWithActions title="Detail" onBackPress={() => navigation.goBack()} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.button} />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!promotion) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerWrapper}>
+                    <HeaderWithActions title="Detail" onBackPress={() => navigation.goBack()} />
+                </View>
+                <View style={styles.notFoundContainer}>
+                    <View style={styles.notFoundIconWrapper}>
+                        <Image source={CalendarIcon} style={styles.notFoundIcon} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.notFoundTitle}>Seasonal promotion not found</Text>
+                    <Text style={styles.notFoundDescription}>
+                        This promotion may have been removed or is no longer available.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.notFoundButton}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Text style={styles.notFoundButtonText}>Back to Home</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const isInactive =
+        promotion.isActive === false ||
+        promotion.isActive === 0 ||
+        promotion.isActive === "false";
+
+    if (isInactive) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerWrapper}>
+                    <HeaderWithActions title="Detail" onBackPress={() => navigation.goBack()} />
+                </View>
+                <View style={styles.notFoundContainer}>
+                    <View style={styles.inactiveIconWrapper}>
+                        <Image source={CalendarIcon} style={styles.inactiveIcon} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.notFoundTitle}>Promotion no longer active</Text>
+                    <Text style={styles.notFoundDescription}>
+                        This seasonal promotion has ended or is currently unavailable.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.notFoundButton}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Text style={styles.notFoundButtonText}>Back to Home</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     const displayDate = promotion?.updatedDate || promotion?.createdDate;
     const dateText = formatDetailDate(displayDate);
-    const timeText = formatDetailTime(displayDate);
     const documentUrl = promotion?.pdfUrl ? getFullImageUrl(promotion.pdfUrl) : null;
 
-    const openDocumentOverlay = useCallback((url, title = "Document") => {
+    const openDocumentOverlay = (url, title = "Document") => {
         setDocumentOverlay({ url, title });
-    }, []);
+    };
 
-    const closeDocumentOverlay = useCallback(() => {
+    const closeDocumentOverlay = () => {
         setDocumentOverlay(null);
-    }, []);
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -70,7 +152,7 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
                         <Image source={CalendarIcon} style={styles.metaIcon} />
                     </View>
                     <Text style={styles.metaText}>
-                        {dateText}{timeText ? `, ${timeText}` : ""}
+                        {dateText}
                     </Text>
                 </View>
 
@@ -123,15 +205,6 @@ const formatDetailDate = (dateValue) => {
     });
 };
 
-const formatDetailTime = (dateValue) => {
-    if (!dateValue) return "";
-    return new Date(dateValue).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-    });
-};
-
 export default SeasonalPromotionDetailScreen;
 
 const styles = StyleSheet.create({
@@ -142,6 +215,79 @@ const styles = StyleSheet.create({
     headerWrapper: {
         paddingHorizontal: 16,
         paddingTop: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    notFoundContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 32,
+        paddingBottom: 80,
+    },
+    notFoundIconWrapper: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F3F4F6",
+        marginBottom: 22,
+    },
+    notFoundIcon: {
+        width: 38,
+        height: 38,
+        tintColor: "#6B7280",
+    },
+    inactiveIconWrapper: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFF4D6",
+        marginBottom: 22,
+    },
+    inactiveIcon: {
+        width: 38,
+        height: 38,
+        tintColor: "#B7791F",
+    },
+    notFoundTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 22,
+        lineHeight: 30,
+        fontWeight: "700",
+        color: colors.text,
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    notFoundDescription: {
+        maxWidth: 300,
+        fontFamily: FontFamily.Medium,
+        fontSize: 15,
+        lineHeight: 22,
+        color: "#6B7280",
+        textAlign: "center",
+        marginBottom: 26,
+    },
+    notFoundButton: {
+        minWidth: 190,
+        minHeight: 50,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+        backgroundColor: colors.button,
+    },
+    notFoundButtonText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.text,
     },
     scrollContent: {
         paddingHorizontal: 16,

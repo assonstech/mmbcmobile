@@ -26,23 +26,73 @@ const colors = isDarkMode ? DarkColors : LightColors;
 
 const NewsletterDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
-    const [newsletter, setNewsletter] = useState(item || null);
+    const [newsletter, setNewsletter] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [imageLoading, setImageLoading] = useState(false);
     const [imageVisible, setImageVisible] = useState(false);
     const [documentOverlay, setDocumentOverlay] = useState(null);
 
     useEffect(() => {
+        let isActive = true;
+
         const loadDetail = async () => {
-            if (!item?.newsletterId) return;
+            if (!item?.newsletterId) {
+                if (isActive) setLoading(false);
+                return;
+            }
 
             const detail = await fetchNewsletterById(item.newsletterId);
-            if (detail) {
-                setNewsletter(detail);
+            if (isActive) {
+                setNewsletter(detail || null);
+                setLoading(false);
             }
         };
 
         loadDetail();
+
+        return () => {
+            isActive = false;
+        };
     }, [item]);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerWrapper}>
+                    <HeaderWithActions title="Detail" onBackPress={() => navigation.goBack()} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.button} />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!newsletter) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.headerWrapper}>
+                    <HeaderWithActions title="Detail" onBackPress={() => navigation.goBack()} />
+                </View>
+                <View style={styles.notFoundContainer}>
+                    <View style={styles.notFoundIconWrapper}>
+                        <Image source={CalendarIcon} style={styles.notFoundIcon} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.notFoundTitle}>Newsletter not found</Text>
+                    <Text style={styles.notFoundDescription}>
+                        This newsletter may have been removed or is no longer available.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.notFoundButton}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Text style={styles.notFoundButtonText}>Back to Home</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     const fileUrl = newsletter?.pdfUrl ? getFullImageUrl(newsletter.pdfUrl) : null;
 
@@ -147,6 +197,65 @@ const styles = StyleSheet.create({
     headerWrapper: {
         paddingHorizontal: 16,
         paddingTop: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    notFoundContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 32,
+        paddingBottom: 80,
+    },
+    notFoundIconWrapper: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F3F4F6",
+        marginBottom: 22,
+    },
+    notFoundIcon: {
+        width: 38,
+        height: 38,
+        tintColor: "#6B7280",
+    },
+    notFoundTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 22,
+        lineHeight: 30,
+        fontWeight: "700",
+        color: colors.text,
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    notFoundDescription: {
+        maxWidth: 300,
+        fontFamily: FontFamily.Medium,
+        fontSize: 15,
+        lineHeight: 22,
+        color: "#6B7280",
+        textAlign: "center",
+        marginBottom: 26,
+    },
+    notFoundButton: {
+        minWidth: 190,
+        minHeight: 50,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+        backgroundColor: colors.button,
+    },
+    notFoundButtonText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.text,
     },
     scrollContent: {
         paddingBottom: 120,

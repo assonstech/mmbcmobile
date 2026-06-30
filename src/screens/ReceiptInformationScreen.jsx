@@ -91,10 +91,10 @@ const ReceiptInformationScreen = ({ navigation, route }) => {
                         value={eventLocation || "-"}
                     />
 
-                    <ReceiptItem
+                    {/* <ReceiptItem
                         label="Paid by"
                         value={paymentType || "Cash"}
-                    />
+                    /> */}
                 </View>
 
                 <View style={styles.totalCard}>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -18,6 +19,7 @@ import {
   fetchGeneralNotifications,
   fetchPaymentNotifications,
 } from "../controllers/NotificationController";
+import { fetchEventDetail } from "../controllers/EventController";
 import Screen from "../utils/Screen";
 
 const isDarkMode = true;
@@ -28,19 +30,23 @@ const NOTIFICATION_TABS = {
   PAYMENT: "PAYMENT",
 };
 
-const NotificationRow = ({ item, isLastInSection, onPress }) => (
+const NotificationRow = ({ item, isLastInSection, loading, onPress }) => (
   <TouchableOpacity
     activeOpacity={item.canOpen ? 0.85 : 1}
-    disabled={!item.canOpen}
+    disabled={!item.canOpen || loading}
     style={[styles.row, isLastInSection && styles.rowLastInSection]}
     onPress={onPress}
   >
     <View style={styles.iconBox}>
-      <Image
-        source={NotificationIcon}
-        style={styles.rowIcon}
-        resizeMode="contain"
-      />
+      {loading ? (
+        <ActivityIndicator size="small" color="#5A1E08" />
+      ) : (
+        <Image
+          source={NotificationIcon}
+          style={styles.rowIcon}
+          resizeMode="contain"
+        />
+      )}
     </View>
     <View style={styles.content}>
       <Text style={styles.rowTitle}>{item.title}</Text>
@@ -60,6 +66,7 @@ const NotificationScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [openingNotificationId, setOpeningNotificationId] = useState(null);
   const listRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -112,15 +119,57 @@ const NotificationScreen = ({ navigation }) => {
     });
   };
 
+  const openPaymentReceipt = async (item) => {
+    try {
+      setOpeningNotificationId(item.id);
+      const response = await fetchEventDetail(item.referenceId);
+      const detail = response?.success ? response.data : null;
+      const event = detail?.event;
+      const registration = detail?.registration;
+
+      if (!event || !registration) {
+        Alert.alert(
+          "Receipt unavailable",
+          "Receipt information could not be found for this payment."
+        );
+        return;
+      }
+
+      navigation.navigate(Screen.ReceiptInformation, {
+        registrationId: registration.registrationId,
+        eventId: event.eventid,
+        isPaid: registration.isPaid,
+        eventTitle: event.eventTitle,
+        eventLocation: event.eventLocation,
+        eventFee: event.eventFee,
+        eventDate: event.eventDate,
+        companyName:
+          registration.companyOrIndividualName ||
+          "Malaysia Myanmar Business Chamber",
+        paymentType: registration.paymentType || "Cash",
+      });
+    } catch (error) {
+      console.log("Error loading receipt information:", error);
+      Alert.alert(
+        "Receipt unavailable",
+        "Unable to load receipt information. Please try again."
+      );
+    } finally {
+      setOpeningNotificationId(null);
+    }
+  };
+
   const openNotification = (item) => {
     if (!item.referenceId) return;
 
     switch (item.type) {
       case "EVENT":
-      case "PAYMENT":
         navigation.navigate(Screen.EventDetailScreen, {
           item: { id: String(item.referenceId) },
         });
+        break;
+      case "PAYMENT":
+        openPaymentReceipt(item);
         break;
       case "NEWSLETTER":
         navigation.navigate(Screen.NewsletterDetail, {
@@ -157,6 +206,7 @@ const NotificationScreen = ({ navigation }) => {
         <NotificationRow
           item={item}
           isLastInSection={isLastInSection}
+          loading={openingNotificationId === item.id}
           onPress={() => openNotification(item)}
         />
       </>
