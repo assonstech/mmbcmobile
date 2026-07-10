@@ -600,7 +600,9 @@ const NewsletterGroupCard = ({ group, onReadMore }) => {
 
 const SeasonalPromotionCard = ({ item, onReadMore }) => {
     const dateText = formatPromotionListDate(getPromotionDateValue(item));
-    const description = item.shortDescription || item.fullDescription || "";
+    const description = getCleanText(item.shortDescription || item.fullDescription);
+    const hasDescription = description.length > 0;
+    const imageUrl = item.imageUrl ? getFullImageUrl(item.imageUrl) : null;
 
     return (
         <View style={styles.promotionCard}>
@@ -613,18 +615,25 @@ const SeasonalPromotionCard = ({ item, onReadMore }) => {
 
             <Text style={styles.promotionTitle}>{item.title || "Seasonal promotions title"}</Text>
 
-            <View style={styles.promotionSummaryRow}>
-                <Text style={styles.promotionBody} numberOfLines={4}>
-                    {getNewsletterPreview(description)}
-                </Text>
+            {hasDescription ? (
+                <View style={styles.promotionSummaryRow}>
+                    <Text style={styles.promotionBody} numberOfLines={4}>
+                        {getNewsletterPreview(description)}
+                    </Text>
 
-                {item.imageUrl && (
-                    <Image
-                        source={{ uri: getFullImageUrl(item.imageUrl) }}
-                        style={styles.promotionThumb}
-                    />
-                )}
-            </View>
+                    {imageUrl && (
+                        <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.promotionThumb}
+                        />
+                    )}
+                </View>
+            ) : imageUrl ? (
+                <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.promotionWideImage}
+                />
+            ) : null}
 
             <TouchableOpacity activeOpacity={0.85} style={styles.promotionReadMoreButton} onPress={onReadMore}>
                 <Text style={styles.promotionReadMoreText}>Read more</Text>
@@ -635,6 +644,15 @@ const SeasonalPromotionCard = ({ item, onReadMore }) => {
 
 const getPromotionDateValue = (item) =>
     item?.updatedDate || item?.createdDate || item?.updatedAt || item?.createdAt;
+
+const getCleanText = (value) => {
+    if (value === undefined || value === null) return "";
+    const text = String(value).trim();
+    if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") {
+        return "";
+    }
+    return text;
+};
 
 const formatPromotionListDate = (dateValue) => {
     if (!dateValue) return "";
@@ -921,6 +939,12 @@ const styles = StyleSheet.create({
     promotionThumb: {
         width: 102,
         height: 102,
+        borderRadius: 14,
+        resizeMode: "cover",
+    },
+    promotionWideImage: {
+        width: "100%",
+        height: 168,
         borderRadius: 14,
         resizeMode: "cover",
     },
