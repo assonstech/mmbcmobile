@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -27,6 +27,7 @@ import Screen from "../utils/Screen";
 import CalendarIcon from "../assets/icons/endo-calendar.png";
 import ImageViewing from "react-native-image-viewing";
 import DocumentOverlay from "../components/DocumentOverlay";
+import { useUserType } from "../utils/useUserType";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -35,6 +36,10 @@ const HUB_TABS = ["HR Working groups", "Newsletter", "Seasonal promotions"];
 const HubScreen = ({ navigation }) => {
     const LIMIT = 10;
     const listRef = useRef(null); // ✅
+    const { isNonMember } = useUserType();
+    const visibleHubTabs = isNonMember
+        ? HUB_TABS.filter(tab => tab !== "Newsletter")
+        : HUB_TABS;
 
 
     const [activeTab, setActiveTab] = useState(HUB_TABS[0]);
@@ -65,6 +70,12 @@ const HubScreen = ({ navigation }) => {
     const closeDocumentOverlay = useCallback(() => {
         setDocumentOverlay(null);
     }, []);
+
+    useEffect(() => {
+        if (isNonMember && activeTab === "Newsletter") {
+            setActiveTab(HUB_TABS[0]);
+        }
+    }, [activeTab, isNonMember]);
 
     const handleToggleExpand = useCallback((id, isExpanded, index) => {
         if (!isExpanded) {
@@ -143,7 +154,7 @@ const HubScreen = ({ navigation }) => {
 
             const nextData = filterDate
                 ? data.filter(item => {
-                    const date = item.updatedDate || item.createdDate;
+                    const date = getPromotionDateValue(item);
                     return date && new Date(date).toDateString() === filterDate.toDateString();
                 })
                 : data;
@@ -217,7 +228,7 @@ const HubScreen = ({ navigation }) => {
                 return newsletterDate && new Date(newsletterDate).toDateString() === selectedStr;
             });
             filteredPromotions = filteredPromotions.filter(item => {
-                const promotionDate = item.updatedDate || item.createdDate;
+                const promotionDate = getPromotionDateValue(item);
                 return promotionDate && new Date(promotionDate).toDateString() === selectedStr;
             });
         }
@@ -259,7 +270,7 @@ const HubScreen = ({ navigation }) => {
                 style={styles.chipScroll}
                 contentContainerStyle={styles.chipRow}
             >
-                {HUB_TABS.map(tab => {
+                {visibleHubTabs.map(tab => {
                     const isSelected = activeTab === tab;
                     return (
                         <TouchableOpacity
@@ -588,7 +599,7 @@ const NewsletterGroupCard = ({ group, onReadMore }) => {
 };
 
 const SeasonalPromotionCard = ({ item, onReadMore }) => {
-    const dateText = formatPromotionListDate(item.updatedDate || item.createdDate);
+    const dateText = formatPromotionListDate(getPromotionDateValue(item));
     const description = item.shortDescription || item.fullDescription || "";
 
     return (
@@ -621,6 +632,9 @@ const SeasonalPromotionCard = ({ item, onReadMore }) => {
         </View>
     );
 };
+
+const getPromotionDateValue = (item) =>
+    item?.updatedDate || item?.createdDate || item?.updatedAt || item?.createdAt;
 
 const formatPromotionListDate = (dateValue) => {
     if (!dateValue) return "";

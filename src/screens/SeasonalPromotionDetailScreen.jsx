@@ -9,6 +9,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ImageViewing from "react-native-image-viewing";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
@@ -26,6 +27,7 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
     const [promotion, setPromotion] = useState(null);
     const [loading, setLoading] = useState(true);
     const [documentOverlay, setDocumentOverlay] = useState(null);
+    const [imageVisible, setImageVisible] = useState(false);
 
     useEffect(() => {
         let isActive = true;
@@ -122,9 +124,13 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
         );
     }
 
-    const displayDate = promotion?.updatedDate || promotion?.createdDate;
+    const displayDate = getPromotionDateValue(promotion);
     const dateText = formatDetailDate(displayDate);
     const documentUrl = promotion?.pdfUrl ? getFullImageUrl(promotion.pdfUrl) : null;
+    const imageUrl = promotion?.imageUrl ? getFullImageUrl(promotion.imageUrl) : null;
+    const shortDescription = getCleanText(promotion?.shortDescription);
+    const fullDescription = getCleanText(promotion?.fullDescription);
+    const hasFullDescription = fullDescription.length > 0;
 
     const openDocumentOverlay = (url, title = "Document") => {
         setDocumentOverlay({ url, title });
@@ -158,27 +164,40 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
 
                 <Text style={styles.title}>{promotion?.title || "Seasonal promotions title"}</Text>
 
-                {!!promotion?.shortDescription && (
+                {!!shortDescription && (
                     <Text style={styles.shortDescription}>
-                        {promotion.shortDescription}
+                        {shortDescription}
                     </Text>
                 )}
 
-                {promotion?.imageUrl && (
-                    <Image
-                        source={{ uri: getFullImageUrl(promotion.imageUrl) }}
-                        style={styles.heroImage}
-                    />
+                {imageUrl && (
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => setImageVisible(true)}
+                    >
+                        <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.heroImage}
+                        />
+                    </TouchableOpacity>
                 )}
 
-                <Text style={styles.fullDescription}>
-                    {promotion?.fullDescription || promotion?.shortDescription || "-"}
-                </Text>
+                {hasFullDescription && (
+                    <View style={styles.detailSection}>
+                        <Text style={styles.sectionTitle}>Details</Text>
+                        <Text style={styles.fullDescription}>
+                            {fullDescription}
+                        </Text>
+                    </View>
+                )}
 
                 {documentUrl && (
                     <TouchableOpacity
                         activeOpacity={0.85}
-                        style={styles.pdfButton}
+                        style={[
+                            styles.pdfButton,
+                            !hasFullDescription && styles.pdfButtonNoDescription,
+                        ]}
                         onPress={() => openDocumentOverlay(documentUrl, promotion?.title || "Document")}
                     >
                         <Text style={styles.pdfButtonText}>View File</Text>
@@ -192,6 +211,13 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
                 title={documentOverlay?.title}
                 onClose={closeDocumentOverlay}
             />
+
+            <ImageViewing
+                images={imageUrl ? [{ uri: imageUrl }] : []}
+                imageIndex={0}
+                visible={imageVisible}
+                onRequestClose={() => setImageVisible(false)}
+            />
         </SafeAreaView>
     );
 };
@@ -204,6 +230,21 @@ const formatDetailDate = (dateValue) => {
         year: "numeric",
     });
 };
+
+const getCleanText = (value) => {
+    if (value === undefined || value === null) return "";
+    const text = String(value).trim();
+    if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") {
+        return "";
+    }
+    return text;
+};
+
+const getPromotionDateValue = (promotion) =>
+    promotion?.updatedDate ||
+    promotion?.createdDate ||
+    promotion?.updatedAt ||
+    promotion?.createdAt;
 
 export default SeasonalPromotionDetailScreen;
 
@@ -338,12 +379,22 @@ const styles = StyleSheet.create({
         height: 388,
         borderRadius: 14,
         resizeMode: "cover",
-        marginBottom: 12,
+        marginBottom: 18,
+    },
+    detailSection: {
+        paddingTop: 2,
+    },
+    sectionTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 17,
+        fontWeight: "700",
+        color: colors.text,
+        marginBottom: 8,
     },
     fullDescription: {
         fontFamily: FontFamily.Regular,
-        fontSize: 18,
-        lineHeight: 28,
+        fontSize: 16,
+        lineHeight: 25,
         color: colors.text,
     },
     pdfButton: {
@@ -353,6 +404,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 13,
         marginTop: 18,
+    },
+    pdfButtonNoDescription: {
+        marginTop: 4,
     },
     pdfButtonText: {
         fontFamily: FontFamily.Medium,

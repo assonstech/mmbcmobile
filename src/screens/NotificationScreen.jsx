@@ -49,9 +49,13 @@ const NotificationRow = ({ item, isLastInSection, loading, onPress }) => (
       )}
     </View>
     <View style={styles.content}>
-      <Text style={styles.rowTitle}>{item.title}</Text>
+      <Text style={styles.rowTitle} numberOfLines={2} ellipsizeMode="tail">
+        {item.title}
+      </Text>
       {!!item.description && (
-        <Text style={styles.rowBody}>{item.description}</Text>
+        <Text style={styles.rowBody} numberOfLines={3} ellipsizeMode="tail">
+          {item.description}
+        </Text>
       )}
       <Text style={styles.timeText}>{item.time}</Text>
     </View>
@@ -420,6 +424,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   rowTitle: {
     fontFamily: FontFamily.SemiBold,

@@ -10,7 +10,6 @@ import {
     Image,
     FlatList,
     PanResponder,
-    Alert,
     Modal
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,6 +27,7 @@ import KnowledgeCardSkeleton from "../components/KnowledgeCardSkeleton";
 import Screen from "../utils/Screen";
 import CustomDatePicker from "../components/CustomDatePicker";
 import { useUserType } from "../utils/useUserType";
+import CustomAlertModal from "../components/CustomAlertModal";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -47,7 +47,7 @@ const isEventAfterRegisterCutoff = (eventDate) => {
 
 const HomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
-    const { isMember, isNonMember, loading: userTypeLoading } = useUserType();
+    const { isMember, isNonMember, loading: userTypeLoading, payload } = useUserType();
     const containerOffset = Platform.OS === "android" ? 260 : 300;
     const translateY = useRef(new Animated.Value(containerOffset)).current;
 
@@ -61,6 +61,8 @@ const HomeScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [checkingMembership, setCheckingMembership] = useState(false);
+    const [membershipAlertVisible, setMembershipAlertVisible] = useState(false);
 
 
 
@@ -362,6 +364,37 @@ const HomeScreen = ({ navigation }) => {
         );
     }, [applyFilters, selectedChip, selectedDate]);
 
+    const handleNonMemberCardPress = async () => {
+        if (checkingMembership) return;
+
+        setCheckingMembership(true);
+
+        const response = await fetchMemberInfo();
+        const latestMemberInfo = response?.success ? response.data : memberInfo;
+
+        if (response?.success) {
+            setMemberInfo(response.data);
+        }
+
+        setCheckingMembership(false);
+
+        const status = String(latestMemberInfo?.status || "").toUpperCase();
+
+        if (status === "PENDING") {
+            setMembershipAlertVisible(true);
+            return;
+        }
+
+        navigation.navigate(Screen.SignUp, {
+            registrationType: "member",
+            source: "nonMemberUpgrade",
+            memberInfo: {
+                ...payload,
+                ...latestMemberInfo,
+            },
+        });
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Custom Date Picker */}
@@ -390,7 +423,12 @@ const HomeScreen = ({ navigation }) => {
 
             {isNonMember && (
                 <View style={styles.nonMemberCardContainer}>
-                    <View style={styles.nonMemberCardFrame}>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        style={styles.nonMemberCardFrame}
+                        onPress={handleNonMemberCardPress}
+                        disabled={checkingMembership}
+                    >
                         <Image
                             source={require("../assets/images/Front.png")}
                             style={styles.nonMemberCardImage}
@@ -398,13 +436,14 @@ const HomeScreen = ({ navigation }) => {
                         />
                         <View style={styles.nonMemberCardOverlay}>
                             <Text style={styles.nonMemberCardOverlayTitle}>
-                                Member card preview
+                                Membership Smart Card
                             </Text>
                             <Text style={styles.nonMemberCardOverlayText}>
-                                Join MMBC to activate your digital card.
+                                The Membership Smart Card is available exclusively for MMBC members.
+                                {"\n\n"}If you are not yet a member, tap here to register and complete your membership registration and enjoy exclusive member benefits, including access to your digital Membership Smart Card.
                             </Text>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </View>
             )}
 
@@ -499,6 +538,13 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+            <CustomAlertModal
+                visible={membershipAlertVisible}
+                title="Application submitted"
+                message="You already applied for member registration. Please wait for admin approval."
+                confirmText="OK"
+                onConfirm={() => setMembershipAlertVisible(false)}
+            />
         </SafeAreaView>
     );
 };
@@ -526,22 +572,22 @@ const styles = StyleSheet.create({
         position: "absolute",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 28,
+        paddingHorizontal: 24,
     },
     nonMemberCardOverlayTitle: {
         fontFamily: FontFamily.SemiBold,
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: "700",
         color: "#884600",
         textAlign: "center",
     },
     nonMemberCardOverlayText: {
         fontFamily: FontFamily.Medium,
-        fontSize: 13,
-        lineHeight: 19,
+        fontSize: 11,
+        lineHeight: 15,
         color: colors.text,
         textAlign: "center",
-        marginTop: 6,
+        marginTop: 8,
     },
     cardContainer: {
         position: "absolute",

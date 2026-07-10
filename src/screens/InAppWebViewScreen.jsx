@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     StyleSheet,
@@ -7,7 +7,6 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import HeaderWithActions from "../components/HeaderWithActions";
 import DarkColors from "../colors/dark";
@@ -16,6 +15,7 @@ import { FontFamily } from "../styles/fontStyle";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
+const LOADING_TIMEOUT_MS = 8000;
 
 const InAppWebViewScreen = ({ navigation, route }) => {
     const { url, title = "Website" } = route?.params || {};
@@ -38,15 +38,21 @@ const InAppWebViewScreen = ({ navigation, route }) => {
         }, 80);
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
+    useEffect(() => {
+        if (normalizedUrl) {
             recreateWebView();
+        }
+    }, [normalizedUrl, recreateWebView]);
 
-            return () => {
-                setShowWebView(false);
-            };
-        }, [recreateWebView])
-    );
+    useEffect(() => {
+        if (!loading || hasError) return undefined;
+
+        const timeout = setTimeout(() => {
+            setLoading(false);
+        }, LOADING_TIMEOUT_MS);
+
+        return () => clearTimeout(timeout);
+    }, [loading, hasError, reloadKey]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -74,6 +80,11 @@ const InAppWebViewScreen = ({ navigation, route }) => {
                                 setLoading(true);
                                 setHasError(false);
                             }}
+                            onLoadProgress={({ nativeEvent }) => {
+                                if (nativeEvent.progress >= 0.7) {
+                                    setLoading(false);
+                                }
+                            }}
                             onLoadEnd={() => setLoading(false)}
                             onError={() => {
                                 setLoading(false);
@@ -81,7 +92,8 @@ const InAppWebViewScreen = ({ navigation, route }) => {
                             }}
                             javaScriptEnabled
                             domStorageEnabled
-                            cacheEnabled={false}
+                            cacheEnabled
+                            cacheMode="LOAD_DEFAULT"
                             mixedContentMode="always"
                             originWhitelist={["*"]}
                             setSupportMultipleWindows={false}

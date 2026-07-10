@@ -18,12 +18,15 @@ import { Dropdown } from "react-native-element-dropdown";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import HttpSerivce from "../common/HttpSerivce";
+import HttpSerivce, { getFullImageUrl } from "../common/HttpSerivce";
 import {
     getNrcTypes,
     getTownshipsByCode,
     getMemberTypes,
     createMember,
+    applyMembership,
+    fetchMemberInfo,
+    checkMemberRegistrationEmail,
 } from "../controllers/MemberController";
 import ImageViewing from "react-native-image-viewing";
 import CustomBottomSheet from "../components/CustomBottomSheet";
@@ -34,6 +37,19 @@ import Screen from "../utils/Screen";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
+
+const getProfileImageUri = (profileImage, savedImage) => {
+    if (profileImage?.path) return profileImage.path;
+    if (!savedImage) return "";
+    if (String(savedImage).startsWith("http")) return savedImage;
+    return getFullImageUrl(savedImage);
+};
+
+const isPendingMembershipApplication = (memberInfo) =>
+    String(memberInfo?.status || "").toUpperCase() === "PENDING";
+
+const normalizePhoneDigits = (value) => String(value || "").replace(/\D/g, "");
+const MAX_PHONE_DIGITS = 15;
 
 const SkeletonBox = ({ width, height, borderRadius = 6, style }) => (
     <View
@@ -51,11 +67,14 @@ const SkeletonBox = ({ width, height, borderRadius = 6, style }) => (
     />
 );
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation, route }) => {
+    const { source, memberInfo: routeMemberInfo } = route?.params || {};
+    const isNonMemberUpgrade = source === "nonMemberUpgrade";
     const [profileImage, setProfileImage] = useState(null);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
     const [imageBottomSheetVisible, setImageBottomSheetVisible] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [checkingApplication, setCheckingApplication] = useState(isNonMemberUpgrade);
     const overlayOpacity = useRef(new Animated.Value(0)).current;
 
     const [alertVisible, setAlertVisible] = useState(false);
@@ -68,20 +87,22 @@ const RegisterScreen = ({ navigation }) => {
     const [imageError, setImageError] = useState("");
 
     const [form, setForm] = useState({
+        memberId: routeMemberInfo?.memberId || "",
         typeOfMembershipId: "",
-        companyOrIndividualName: "",
-        email: "",
-        phone: "",
-        companyOrIndividualImage: "",
-        companyOrIndividualAddress: "",
+        companyOrIndividualName: routeMemberInfo?.companyOrIndividualName || "",
+        email: routeMemberInfo?.email || "",
+        phone: routeMemberInfo?.phone || routeMemberInfo?.telephone || "",
+        companyOrIndividualImage: routeMemberInfo?.companyOrIndividualImage || "",
+        companyOrIndividualAddress: routeMemberInfo?.companyOrIndividualAddress || "",
         memberNRC: "",
         isBOD: false,
         status: "Pending",
-        representiveName: "",
-        representivePosition: "",
-        representiveNationality: "",
+        representiveName: routeMemberInfo?.representiveName || "",
+        representivePosition: routeMemberInfo?.representivePosition || "",
+        representiveNationality: routeMemberInfo?.representiveNationality || "",
         passwordHash: "",
         isCEO: false,
+        userType: "MEMBER",
     });
 
     const [nrcTypes, setNrcTypes] = useState([]);
@@ -134,6 +155,105 @@ const RegisterScreen = ({ navigation }) => {
             }
         })();
     }, [selectedState]);
+
+    useEffect(() => {
+        if (!routeMemberInfo) return;
+
+        setForm((prev) => ({
+            ...prev,
+            memberId: routeMemberInfo.memberId || prev.memberId,
+            companyOrIndividualName:
+                routeMemberInfo.companyOrIndividualName || prev.companyOrIndividualName,
+            email: routeMemberInfo.email || prev.email,
+            phone: routeMemberInfo.phone || routeMemberInfo.telephone || prev.phone,
+            companyOrIndividualImage:
+                routeMemberInfo.companyOrIndividualImage || prev.companyOrIndividualImage,
+            companyOrIndividualAddress:
+                routeMemberInfo.companyOrIndividualAddress || prev.companyOrIndividualAddress,
+            representiveName:
+                routeMemberInfo.representiveName || prev.representiveName,
+            representivePosition:
+                routeMemberInfo.representivePosition || prev.representivePosition,
+            representiveNationality:
+                routeMemberInfo.representiveNationality || prev.representiveNationality,
+            status: "Pending",
+            userType: "MEMBER",
+        }));
+    }, [routeMemberInfo]);
+
+    useEffect(() => {
+        if (!isNonMemberUpgrade) return undefined;
+
+        let isMounted = true;
+
+        const checkApplicationStatus = async () => {
+            setCheckingApplication(true);
+
+            try {
+                const response = await fetchMemberInfo();
+                const latestMemberInfo = response?.success
+                    ? response.data
+                    : routeMemberInfo;
+
+                if (!isMounted) return;
+
+                if (latestMemberInfo) {
+                    setForm((prev) => ({
+                        ...prev,
+                        memberId: latestMemberInfo.memberId || prev.memberId,
+                        companyOrIndividualName:
+                            latestMemberInfo.companyOrIndividualName ||
+                            prev.companyOrIndividualName,
+                        email: latestMemberInfo.email || prev.email,
+                        phone:
+                            latestMemberInfo.phone ||
+                            latestMemberInfo.telephone ||
+                            prev.phone,
+                        companyOrIndividualImage:
+                            latestMemberInfo.companyOrIndividualImage ||
+                            prev.companyOrIndividualImage,
+                        companyOrIndividualAddress:
+                            latestMemberInfo.companyOrIndividualAddress ||
+                            prev.companyOrIndividualAddress,
+                        representiveName:
+                            latestMemberInfo.representiveName ||
+                            prev.representiveName,
+                        representivePosition:
+                            latestMemberInfo.representivePosition ||
+                            prev.representivePosition,
+                        representiveNationality:
+                            latestMemberInfo.representiveNationality ||
+                            prev.representiveNationality,
+                        status: "Pending",
+                        userType: "MEMBER",
+                    }));
+                }
+
+                if (isPendingMembershipApplication(latestMemberInfo)) {
+                    setAlertMessage(
+                        "You already applied for member registration. Please wait for admin approval."
+                    );
+                    setAlertAction(
+                        () => () => {
+                            setAlertVisible(false);
+                            navigation.goBack();
+                        }
+                    );
+                    setAlertVisible(true);
+                }
+            } catch (error) {
+                console.log("Membership application check failed:", error);
+            } finally {
+                if (isMounted) setCheckingApplication(false);
+            }
+        };
+
+        checkApplicationStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isNonMemberUpgrade, navigation, routeMemberInfo]);
 
     useEffect(() => {
         const memberNRC =
@@ -243,39 +363,81 @@ const RegisterScreen = ({ navigation }) => {
             setUploading(true);
             fadeInOverlay();
 
-            const formData = new FormData();
-            formData.append("profileImage", {
-                uri:
-                    Platform.OS === "ios"
-                        ? profileImage.path.replace("file://", "")
-                        : profileImage.path,
-                type: profileImage.mime,
-                name:
-                    profileImage.filename ||
-                    `upload_${Date.now()}.jpg`,
-            });
+            if (!isNonMemberUpgrade) {
+                const emailCheck = await checkMemberRegistrationEmail(form.email);
 
-            const res = await HttpSerivce.post(
-                "/member/single-upload/profileImage",
-                formData,
-                {
-                    headers: { "Content-Type": "multipart/form-data" },
+                if (!emailCheck?.success) {
+                    setAlertMessage(
+                        emailCheck?.message || "Failed to check member email."
+                    );
+                    setAlertVisible(true);
+                    setAlertAction(() => () => setAlertVisible(false));
+                    return;
                 }
-            );
+
+                if (emailCheck?.data?.action === "UPDATE_NON_MEMBER") {
+                    setAlertMessage(
+                        "This email is already registered as a non-member. Please login as non-member and apply from your member card."
+                    );
+                    setAlertVisible(true);
+                    setAlertAction(() => () => setAlertVisible(false));
+                    return;
+                }
+            }
+
+            let uploadedImage = form.companyOrIndividualImage;
+
+            if (profileImage?.path) {
+                const formData = new FormData();
+                formData.append("profileImage", {
+                    uri:
+                        Platform.OS === "ios"
+                            ? profileImage.path.replace("file://", "")
+                            : profileImage.path,
+                    type: profileImage.mime,
+                    name:
+                        profileImage.filename ||
+                        `upload_${Date.now()}.jpg`,
+                });
+
+                const res = await HttpSerivce.post(
+                    "/member/single-upload/profileImage",
+                    formData,
+                    {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }
+                );
+
+                uploadedImage = res?.profileImage;
+            }
 
             const memberForm = {
                 ...form,
-                companyOrIndividualImage: res?.profileImage,
+                phone: String(form.phone || "").trim(),
+                companyOrIndividualImage: uploadedImage,
+                status: "Pending",
+                userType: "MEMBER",
             };
-            const createRes = await createMember(memberForm);
+            const createRes = isNonMemberUpgrade
+                ? await applyMembership(memberForm)
+                : await createMember(memberForm);
 
             if (createRes?.success) {
-                setAlertMessage("Register successful!");
+                setAlertMessage(
+                    isNonMemberUpgrade
+                        ? "Member registration submitted successfully!"
+                        : "Register successful!"
+                );
                 setAlertVisible(true);
 
                 setAlertAction(
                     () => () => {
                         setAlertVisible(false);
+                        if (isNonMemberUpgrade) {
+                            navigation.goBack();
+                            return;
+                        }
+
                         navigation.reset({
                             index: 0,
                             routes: [{ name: Screen.Login }],
@@ -283,7 +445,11 @@ const RegisterScreen = ({ navigation }) => {
                     }
                 );
             } else {
-                const msg = "Email already exists";
+                const responseMessage = createRes?.message || "";
+                const msg =
+                    isNonMemberUpgrade && responseMessage.toLowerCase().includes("already pending")
+                        ? "You already applied for member registration. Please wait for admin approval."
+                        : responseMessage || "Email already exists";
 
                 setAlertMessage(msg);
                 setAlertVisible(true);
@@ -330,8 +496,8 @@ const RegisterScreen = ({ navigation }) => {
             errors.email = "Invalid email format";
 
         if (!form.phone) errors.phone = "Phone is required";
-        else if (!/^\d{7,15}$/.test(form.phone))
-            errors.phone = "Invalid phone number";
+        else if (normalizePhoneDigits(form.phone).length > MAX_PHONE_DIGITS)
+            errors.phone = `Phone number must be ${MAX_PHONE_DIGITS} digits or fewer`;
 
         if (!form.companyOrIndividualName)
             errors.companyOrIndividualName = "Company name is required";
@@ -343,16 +509,6 @@ const RegisterScreen = ({ navigation }) => {
             errors.representiveNationality = "Nationality is required";
         if (!form.typeOfMembershipId)
             errors.typeOfMembershipId = "Membership type is required";
-
-        if (!form.passwordHash) {
-            errors.passwordHash = "Password is required";
-        } else {
-            const digitCount = (form.passwordHash.match(/\d/g) || []).length;
-            if (digitCount < 4) {
-                errors.passwordHash =
-                    "Password must contain at least 4 characters or digits";
-            }
-        }
 
         setFormErrors(errors);
         setNrcErrors({
@@ -387,11 +543,7 @@ const RegisterScreen = ({ navigation }) => {
                 >
                     {form.companyOrIndividualImage || profileImage ? (
                         <Image
-                            source={{
-                                uri:
-                                    profileImage?.path ||
-                                    form.companyOrIndividualImage,
-                            }}
+                            source={{ uri: getProfileImageUri(profileImage, form.companyOrIndividualImage) }}
                             style={styles.profileImage}
                         />
                     ) : (
@@ -607,7 +759,6 @@ const RegisterScreen = ({ navigation }) => {
                     {[
                         { key: "representiveName", label: "Name" },
                         { key: "email", label: "Email" },
-                        { key: "passwordHash", label: "Password" },
                         { key: "phone", label: "Phone" },
                         {
                             key: "companyOrIndividualName",
@@ -625,54 +776,66 @@ const RegisterScreen = ({ navigation }) => {
                             key: "representiveNationality",
                             label: "Nationality",
                         },
-                    ].map((field) => (
-                        <View key={field.key} style={styles.infoCard}>
-                            <Text style={styles.label}>{field.label}</Text>
-                            <TextInput
-                                value={form[field.key]}
-                                onChangeText={(text) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        [field.key]: text,
-                                    }))
-                                }
-                                style={[
-                                    styles.input,
-                                    field.key ===
-                                        "companyOrIndividualAddress" &&
-                                        styles.textArea,
-                                    formErrors[field.key] && {
-                                        borderColor: "red",
-                                    },
-                                ]}
-                                placeholder={`Enter ${field.label}`}
-                                placeholderTextColor="#999"
-                                multiline={
-                                    field.key ===
-                                    "companyOrIndividualAddress"
-                                }
-                                numberOfLines={
-                                    field.key ===
-                                    "companyOrIndividualAddress"
-                                        ? 4
-                                        : 1
-                                }
-                                keyboardType={
-                                    field.key === "phone"
-                                        ? "number-pad"
-                                        : "default"
-                                }
-                                secureTextEntry={
-                                    field.key === "passwordHash"
-                                }
-                            />
-                            {formErrors[field.key] && (
-                                <Text style={styles.errorText}>
-                                    {formErrors[field.key]}
+                    ].map((field) => {
+                        const isLockedEmail =
+                            isNonMemberUpgrade && field.key === "email";
+
+                        return (
+                            <View key={field.key} style={styles.infoCard}>
+                                <Text style={styles.label}>
+                                    {isLockedEmail ? "Non-member email" : field.label}
                                 </Text>
-                            )}
-                        </View>
-                    ))}
+                                <TextInput
+                                    value={form[field.key]}
+                                    editable={!isLockedEmail}
+                                    onChangeText={(text) => {
+                                        if (isLockedEmail) return;
+                                        const nextValue =
+                                            field.key === "phone"
+                                                ? normalizePhoneDigits(text).slice(0, MAX_PHONE_DIGITS)
+                                                : text;
+
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            [field.key]: nextValue,
+                                        }));
+                                    }}
+                                    style={[
+                                        styles.input,
+                                        isLockedEmail && styles.inputDisabled,
+                                        field.key ===
+                                            "companyOrIndividualAddress" &&
+                                            styles.textArea,
+                                        formErrors[field.key] && {
+                                            borderColor: "red",
+                                        },
+                                    ]}
+                                    placeholder={`Enter ${field.label}`}
+                                    placeholderTextColor="#999"
+                                    multiline={
+                                        field.key ===
+                                        "companyOrIndividualAddress"
+                                    }
+                                    numberOfLines={
+                                        field.key ===
+                                        "companyOrIndividualAddress"
+                                            ? 4
+                                            : 1
+                                    }
+                                    keyboardType={
+                                        field.key === "phone"
+                                            ? "phone-pad"
+                                            : "default"
+                                    }
+                                />
+                                {formErrors[field.key] && (
+                                    <Text style={styles.errorText}>
+                                        {formErrors[field.key]}
+                                    </Text>
+                                )}
+                            </View>
+                        );
+                    })}
 
                     {!imageBottomSheetVisible && (
                         <DefaultButton
@@ -693,8 +856,7 @@ const RegisterScreen = ({ navigation }) => {
                     images={[
                         {
                             uri:
-                                profileImage?.path ||
-                                form.companyOrIndividualImage,
+                                getProfileImageUri(profileImage, form.companyOrIndividualImage),
                         },
                     ]}
                     imageIndex={0}
@@ -745,6 +907,17 @@ const RegisterScreen = ({ navigation }) => {
                         </Text>
                     </View>
                 </Animated.View>
+            )}
+
+            {checkingApplication && (
+                <View style={styles.overlay}>
+                    <View style={styles.loaderBox}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={styles.loaderText}>
+                            Checking application...
+                        </Text>
+                    </View>
+                </View>
             )}
 
             <CustomAlertModal
@@ -833,6 +1006,10 @@ const styles = StyleSheet.create({
         fontFamily: FontFamily.Medium,
         backgroundColor: "#FAFAFA",
         marginBottom: 10,
+    },
+    inputDisabled: {
+        color: "#777",
+        backgroundColor: "#F0F0F0",
     },
     textArea: {
         height: 100,

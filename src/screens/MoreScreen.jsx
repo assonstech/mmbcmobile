@@ -181,7 +181,7 @@ const MoreScreen = ({ navigation }) => {
         { label: "MOU Partners", icon: PartnerIcon },
         { label: "Member directory", icon: MemberDirectoryIcon,memberOnly: true },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
-        { label: "Organization chart", icon: require("../../src/assets/icons/people.png"), memberOnly: true },
+        { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
         { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png"), memberOnly: true },
         { label: "Delete account", icon: require("../../src/assets/icons/delete.png") },
 
@@ -205,7 +205,7 @@ const MoreScreen = ({ navigation }) => {
             {/* Background Logo */}
             <View style={styles.logoContainer}>
                 <Image
-                    source={require("../../src/assets/images/profileBg.png")}
+                    source={require("../../src/assets/images/appLogo.png")}
                     style={styles.backgroundLogo}
                 />
             </View>
@@ -298,7 +298,7 @@ export default MoreScreen;
 const styles = StyleSheet.create({
     container: { flex: 1 },
     logoContainer: { alignItems: "center" },
-    backgroundLogo: { width: 270, height: 270, resizeMode: "contain" },
+    backgroundLogo: { width: 270, height: 270, resizeMode: "contain" ,opacity:0.2},
     cardContainer: {
         ...StyleSheet.absoluteFill,
         flex: 1,

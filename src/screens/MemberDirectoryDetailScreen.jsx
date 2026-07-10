@@ -22,6 +22,15 @@ import DefaultAvatar from "../assets/images/Default.png";
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
 
+const isValidWebsiteUrl = (value) => {
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
+};
+
 const MemberDirectoryDetailScreen = ({ navigation, route }) => {
     const { item } = route?.params || {};
     const [directory, setDirectory] = useState(item || null);
@@ -48,12 +57,19 @@ const MemberDirectoryDetailScreen = ({ navigation, route }) => {
 
     const logoUrl = getFullImageUrl(directory?.logoUrl);
     const members = Array.isArray(directory?.members) ? directory.members : [];
+    const websiteUrl =
+        typeof directory?.website === "string" ? directory.website.trim() : "";
+    const hasWebsite =
+        websiteUrl.length > 0 &&
+        websiteUrl.toLowerCase() !== "null" &&
+        websiteUrl.toLowerCase() !== "undefined" &&
+        isValidWebsiteUrl(websiteUrl);
 
     const openWebsite = () => {
-        if (!directory?.website) return;
+        if (!hasWebsite) return;
 
         navigation.navigate(Screen.InAppWebView, {
-            url: directory.website,
+            url: websiteUrl,
             title: directory.name || "Website",
         });
     };
@@ -104,7 +120,7 @@ const MemberDirectoryDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.description}>{directory.description}</Text>
                     )}
 
-                    {!!directory?.website && (
+                    {hasWebsite && (
                         <TouchableOpacity
                             activeOpacity={0.85}
                             style={styles.websiteButton}

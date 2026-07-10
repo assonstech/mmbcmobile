@@ -178,11 +178,41 @@ export const getNrcTypes = async () => {
 export const createMember = async (postBody) => {
   try {
     const res = await http.post("/member/register-member", postBody)
+    console.log("res",res)
     return res
   } catch (err) {
     console.log(err)
   }
 }
+
+export const checkMemberRegistrationEmail = async (email) => {
+  try {
+    const res = await http.post("/member/check-member-registration-email", {
+      email,
+    });
+    return res;
+  } catch (err) {
+    console.log(err);
+    return {
+      success: false,
+      message: err?.message || "Failed to check member email",
+    };
+  }
+};
+
+export const applyMembership = async (postBody) => {
+  try {
+    const res = await http.put("/member/apply-membership", postBody);
+    console.log("res",res)
+    return res;
+  } catch (err) {
+    console.log(err);
+    return {
+      success: false,
+      message: err?.message || "Failed to submit membership application",
+    };
+  }
+};
 
 async function validateEmailZeroBounce(email) {
   const apiKey = "12cb3b1fdc9e48caabea46ce34c40537";

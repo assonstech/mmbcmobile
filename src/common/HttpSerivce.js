@@ -111,7 +111,12 @@ const post = async (url, body = {}, config = {}) => {
     const res = await apiClient.post(url, body, config);
     return res.data;
   } catch (err) {
-    return { success: false, message: err.message, data: null };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.response?.data?.error || err.message,
+      code: err.response?.status,
+      data: err.response?.data || null,
+    };
   }
 };
 
@@ -120,7 +125,12 @@ const put = async (url, body = {}, config = {}) => {
     const res = await apiClient.put(url, body, config);
     return res.data;
   } catch (err) {
-    return { success: false, message: err.message, data: null };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.response?.data?.error || err.message,
+      code: err.response?.status,
+      data: err.response?.data || null,
+    };
   }
 };
 
