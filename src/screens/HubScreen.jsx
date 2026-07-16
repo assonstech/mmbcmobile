@@ -38,7 +38,7 @@ const HubScreen = ({ navigation }) => {
     const listRef = useRef(null); // ✅
     const { isNonMember } = useUserType();
     const visibleHubTabs = isNonMember
-        ? HUB_TABS.filter(tab => tab !== "Newsletter")
+        ? HUB_TABS.filter(tab => tab !== "Newsletter" && tab !== "Seasonal promotions")
         : HUB_TABS;
 
 
@@ -72,7 +72,7 @@ const HubScreen = ({ navigation }) => {
     }, []);
 
     useEffect(() => {
-        if (isNonMember && activeTab === "Newsletter") {
+        if (isNonMember && (activeTab === "Newsletter" || activeTab === "Seasonal promotions")) {
             setActiveTab(HUB_TABS[0]);
         }
     }, [activeTab, isNonMember]);
@@ -251,6 +251,8 @@ const HubScreen = ({ navigation }) => {
     };
 
     const handleTabPress = (tab) => {
+        if (isNonMember && (tab === "Newsletter" || tab === "Seasonal promotions")) return;
+
         setActiveTab(tab);
 
         if (tab === "Newsletter" && allNewsletters.length === 0) {
@@ -390,7 +392,7 @@ const HubScreen = ({ navigation }) => {
                 </View>
             </View>
 
-            {renderHubChips()}
+            {!isNonMember && renderHubChips()}
 
             {/* Date Picker */}
             <CustomDatePicker

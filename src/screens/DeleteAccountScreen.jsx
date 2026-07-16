@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import DarkColors from "../colors/dark";
@@ -8,7 +8,7 @@ import HeaderWithActions from "../components/HeaderWithActions";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DefaultTextInput from "../components/DefaultTextInput";
 import DefaultButton from "../components/DefaultButton";
-import { updateAcccountDeleteStatus } from "../controllers/MemberController";
+import { fetchMemberInfo, updateAcccountDeleteStatus } from "../controllers/MemberController";
 import HttpSerivce from "../common/HttpSerivce";
 import Screen from "../utils/Screen";
 import { logoutOneSignal } from "../notifications/useNotification";
@@ -20,6 +20,8 @@ const DeleteAccountScreen = () => {
     const [email, setEmail] = useState("");
     const [emailError, setEmailError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [memberInfo, setMemberInfo] = useState(null);
+    const [memberInfoLoading, setMemberInfoLoading] = useState(true);
 
     const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -30,6 +32,31 @@ const DeleteAccountScreen = () => {
         Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
 
     const navigation = useNavigation();
+    const isWaitingForApproval = useMemo(() => {
+        const userType = String(memberInfo?.userType || "").toUpperCase();
+        const status = String(memberInfo?.status || "").toUpperCase();
+        return userType === "NON_MEMBER" && status === "PENDING";
+    }, [memberInfo]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const loadMemberInfo = async () => {
+            const response = await fetchMemberInfo();
+            if (isActive && response?.success) {
+                setMemberInfo(response.data);
+            }
+            if (isActive) {
+                setMemberInfoLoading(false);
+            }
+        };
+
+        loadMemberInfo();
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
 
     // Validate email on button click
     const validateOnSubmit = () => {
@@ -50,6 +77,11 @@ const DeleteAccountScreen = () => {
     };
 
     const onDeletePress = async () => {
+        if (isWaitingForApproval) {
+            setEmailError("Please wait for admin approval before deleting your account.");
+            return;
+        }
+
         const isValid = validateOnSubmit();
         if (!isValid) return;
 
@@ -118,29 +150,47 @@ const DeleteAccountScreen = () => {
                         <Text style={styles.bold}>09971988989</Text>.
                     </Text>
 
-                    {/* Email Input */}
-                    <DefaultTextInput
-                        label="Email Address"
-                        placeholder="sample@gmail.com"
-                        value={email}
-                        onChangeText={(val) => {
-                            setEmail(val);
-                            setEmailError(""); // Clear error while typing
-                        }}
-                    />
+                    {isWaitingForApproval && (
+                        <View style={styles.pendingBox}>
+                            <Text style={styles.pendingTitle}>Membership application pending</Text>
+                            <Text style={styles.pendingText}>
+                                Please wait for admin approval. Account deletion is not available while your membership application is under review.
+                            </Text>
+                        </View>
+                    )}
 
-                    {/* Error Message */}
-                    {emailError ? (
-                        <Text style={styles.errorText}>{emailError}</Text>
-                    ) : null}
+                    {memberInfoLoading ? (
+                        <View style={styles.formLoadingBox}>
+                            <ActivityIndicator size="small" color={colors.button} />
+                            <Text style={styles.formLoadingText}>Checking account status...</Text>
+                        </View>
+                    ) : !isWaitingForApproval && (
+                        <>
+                            {/* Email Input */}
+                            <DefaultTextInput
+                                label="Email Address"
+                                placeholder="sample@gmail.com"
+                                value={email}
+                                onChangeText={(val) => {
+                                    setEmail(val);
+                                    setEmailError(""); // Clear error while typing
+                                }}
+                            />
 
-                    {/* Submit Button */}
-                    <DefaultButton
-                        title="Delete Account"
-                        onPress={onDeletePress}
-                        disabled={loading}
-                        style={{ marginTop: 20 }}
-                    />
+                            {/* Error Message */}
+                            {emailError ? (
+                                <Text style={styles.errorText}>{emailError}</Text>
+                            ) : null}
+
+                            {/* Submit Button */}
+                            <DefaultButton
+                                title="Delete Account"
+                                onPress={onDeletePress}
+                                disabled={loading}
+                                style={{ marginTop: 20 }}
+                            />
+                        </>
+                    )}
                 </ScrollView>
                 {loading && (
                     <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
@@ -189,6 +239,39 @@ const styles = StyleSheet.create({
         marginTop: -8,
         marginBottom: 10,
         fontFamily: FontFamily.Regular,
+    },
+    pendingBox: {
+        backgroundColor: colors.alertBgColor,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginTop: 4,
+        marginBottom: 16,
+    },
+    pendingTitle: {
+        fontFamily: FontFamily.SemiBold,
+        fontSize: 15,
+        fontWeight: "700",
+        color: colors.text,
+        marginBottom: 4,
+    },
+    pendingText: {
+        fontFamily: FontFamily.Regular,
+        fontSize: 14,
+        lineHeight: 20,
+        color: colors.loginAccountColor,
+    },
+    formLoadingBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 20,
+    },
+    formLoadingText: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 14,
+        color: colors.loginAccountColor,
     },
     overlay: {
         position: "absolute",

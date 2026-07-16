@@ -178,11 +178,11 @@ const MoreScreen = ({ navigation }) => {
         { label: "Change Password", icon: require("../../src/assets/icons/key.png"), memberOnly: true },
         { label: "Privacy Policy", icon: require("../../src/assets/icons/shield.png") },
         { label: "About Us", icon: require("../../src/assets/icons/note.png") },
-        { label: "MOU Partners", icon: PartnerIcon },
+        { label: "MOU Partners", icon: PartnerIcon, memberOnly: true },
         { label: "Member directory", icon: MemberDirectoryIcon,memberOnly: true },
         { label: "Organization detail", icon: require("../../src/assets/icons/org.png") },
         { label: "Organization chart", icon: require("../../src/assets/icons/people.png") },
-        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png"), memberOnly: true },
+        { label: "Benefits & Affiliation Programs", icon: require("../../src/assets/icons/benefit.png") },
         { label: "Delete account", icon: require("../../src/assets/icons/delete.png") },
 
 

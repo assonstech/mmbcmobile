@@ -21,6 +21,7 @@ import {
 } from "../controllers/NotificationController";
 import { fetchEventDetail } from "../controllers/EventController";
 import Screen from "../utils/Screen";
+import { useUserType } from "../utils/useUserType";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -29,6 +30,7 @@ const NOTIFICATION_TABS = {
   GENERAL: "GENERAL",
   PAYMENT: "PAYMENT",
 };
+const NON_MEMBER_BLOCKED_TYPES = ["NEWSLETTER", "SEASONALPROMOTION"];
 
 const NotificationRow = ({ item, isLastInSection, loading, onPress }) => (
   <TouchableOpacity
@@ -63,6 +65,7 @@ const NotificationRow = ({ item, isLastInSection, loading, onPress }) => (
 );
 
 const NotificationScreen = ({ navigation }) => {
+  const { isNonMember } = useUserType();
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState(NOTIFICATION_TABS.GENERAL);
   const [page, setPage] = useState(1);
@@ -90,7 +93,11 @@ const NotificationScreen = ({ navigation }) => {
 
     if (requestId !== requestIdRef.current) return;
 
-    const formatted = result.notifications.map(formatNotification);
+    const formatted = result.notifications
+      .map(formatNotification)
+      .filter((item) => (
+        !isNonMember || !NON_MEMBER_BLOCKED_TYPES.includes(item.type)
+      ));
 
     setNotifications((current) => (
       shouldAppend ? [...current, ...formatted] : formatted
@@ -99,7 +106,7 @@ const NotificationScreen = ({ navigation }) => {
     setTotalPages(result.pagination?.totalPages || 1);
     setLoading(false);
     setLoadingMore(false);
-  }, [activeTab]);
+  }, [activeTab, isNonMember]);
 
   useEffect(() => {
     loadNotifications();
@@ -165,6 +172,14 @@ const NotificationScreen = ({ navigation }) => {
 
   const openNotification = (item) => {
     if (!item.referenceId) return;
+
+    if (item.isMemberOnly) {
+      Alert.alert(
+        "Member only",
+        "This notification content is available for MMBC members only."
+      );
+      return;
+    }
 
     switch (item.type) {
       case "EVENT":
@@ -288,17 +303,24 @@ const NotificationScreen = ({ navigation }) => {
   );
 };
 
-const formatNotification = (item) => ({
-  id: item.notificationId || item.id,
-  title: item.title || "-",
-  description: item.description || "",
-  type: (item.type || "EVENT").toUpperCase(),
-  referenceId: item.referenceId || item.eventId,
-  canOpen: Boolean(item.referenceId || item.eventId),
-  createdDate: item.createdDate,
-  section: getDateSection(item.createdDate),
-  time: formatTime(item.createdDate),
-});
+const formatNotification = (item, isNonMember = false) => {
+  const type = (item.type || "EVENT").toUpperCase();
+  const referenceId = item.referenceId || item.eventId;
+  const isMemberOnly = isNonMember && NON_MEMBER_BLOCKED_TYPES.includes(type);
+
+  return {
+    id: item.notificationId || item.id,
+    title: item.title || "-",
+    description: item.description || "",
+    type,
+    referenceId,
+    isMemberOnly,
+    canOpen: Boolean(referenceId),
+    createdDate: item.createdDate,
+    section: getDateSection(item.createdDate),
+    time: formatTime(item.createdDate),
+  };
+};
 
 const getDateSection = (dateValue) => {
   if (!dateValue) return "Earlier";
