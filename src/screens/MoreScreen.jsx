@@ -261,7 +261,7 @@ const MoreScreen = ({ navigation }) => {
                     }}
                 >
                     {loading ? (
-                        Array.from({ length: 7 }).map((_, i) => (
+                        Array.from({ length: 20 }).map((_, i) => (
                             <SkeletonBox
                                 key={i}
                                 width={"90%"}

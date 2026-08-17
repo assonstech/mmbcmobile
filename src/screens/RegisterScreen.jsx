@@ -33,7 +33,6 @@ import CustomBottomSheet from "../components/CustomBottomSheet";
 import ImagePicker from "react-native-image-crop-picker";
 import CustomAlertModal from "../components/CustomAlertModal";
 import DefaultButton from "../components/DefaultButton";
-import Screen from "../utils/Screen";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -79,6 +78,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
     const [alertAction, setAlertAction] = useState(
         () => () => setAlertVisible(false)
     );
@@ -94,6 +94,7 @@ const RegisterScreen = ({ navigation, route }) => {
         phone: routeMemberInfo?.phone || routeMemberInfo?.telephone || "",
         companyOrIndividualImage: routeMemberInfo?.companyOrIndividualImage || "",
         companyOrIndividualAddress: routeMemberInfo?.companyOrIndividualAddress || "",
+        documentType: "nrc",
         memberNRC: "",
         isBOD: false,
         status: "Pending",
@@ -110,6 +111,7 @@ const RegisterScreen = ({ navigation, route }) => {
     const [selectedTownship, setSelectedTownship] = useState("");
     const [selectedType, setSelectedType] = useState("");
     const [nrcNumber, setNrcNumber] = useState("");
+    const [passportNumber, setPassportNumber] = useState("");
     const [nrcTownships, setNrcTownships] = useState([]);
     const [nrcErrors, setNrcErrors] = useState({});
     const [formErrors, setFormErrors] = useState({});
@@ -256,6 +258,8 @@ const RegisterScreen = ({ navigation, route }) => {
     }, [isNonMemberUpgrade, navigation, routeMemberInfo]);
 
     useEffect(() => {
+        if (form.documentType !== "nrc") return;
+
         const memberNRC =
             selectedState &&
             selectedTownship &&
@@ -268,7 +272,16 @@ const RegisterScreen = ({ navigation, route }) => {
             if (prev.memberNRC === memberNRC) return prev; // prevent infinite loop
             return { ...prev, memberNRC };
         });
-    }, [selectedState, selectedTownship, selectedType, nrcNumber]);
+    }, [form.documentType, selectedState, selectedTownship, selectedType, nrcNumber]);
+
+    useEffect(() => {
+        if (form.documentType !== "passport") return;
+
+        setForm((prev) => {
+            if (prev.memberNRC === passportNumber) return prev;
+            return { ...prev, memberNRC: passportNumber };
+        });
+    }, [form.documentType, passportNumber]);
 
     const fadeInOverlay = () =>
         Animated.timing(overlayOpacity, {
@@ -352,6 +365,8 @@ const RegisterScreen = ({ navigation, route }) => {
     };
 
     const handleSubmit = async () => {
+        setIsRegistrationSuccess(false);
+
         if (!validateForm()) {
             setAlertMessage("Please fill all required fields correctly.");
             setAlertVisible(true);
@@ -422,28 +437,21 @@ const RegisterScreen = ({ navigation, route }) => {
                 ? await applyMembership(memberForm)
                 : await createMember(memberForm);
 
-            if (createRes?.success) {
+            console.log("createRes",createRes)
+
+            const isSuccessfulResponse =
+                createRes?.success === true &&
+                (isNonMemberUpgrade ||
+                    (createRes?.code >= 200 && createRes?.code < 300));
+
+            if (isSuccessfulResponse) {
+                setIsRegistrationSuccess(true);
                 setAlertMessage(
                     isNonMemberUpgrade
                         ? "Member registration submitted successfully!"
                         : "Register successful!"
                 );
                 setAlertVisible(true);
-
-                setAlertAction(
-                    () => () => {
-                        setAlertVisible(false);
-                        if (isNonMemberUpgrade) {
-                            navigation.goBack();
-                            return;
-                        }
-
-                        navigation.reset({
-                            index: 0,
-                            routes: [{ name: Screen.Login }],
-                        });
-                    }
-                );
             } else {
                 const responseMessage = createRes?.message || "";
                 const msg =
@@ -467,6 +475,11 @@ const RegisterScreen = ({ navigation, route }) => {
         }
     };
 
+    const handleRegistrationSuccessConfirm = () => {
+        setAlertVisible(false);
+        navigation.goBack();
+    };
+
     const handleInputChange = (field, value) =>
         setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -481,12 +494,16 @@ const RegisterScreen = ({ navigation, route }) => {
             setImageError("");
         }
 
-        // NRC
-        if (!selectedState) errors.state = "State required";
-        if (!selectedTownship) errors.township = "Township required";
-        if (!selectedType) errors.type = "Type required";
-        if (!nrcNumber) errors.number = "Citizen number required";
-        else if (nrcNumber.length !== 6) errors.number = "Must be 6 digits";
+        // Identification document
+        if (form.documentType === "nrc") {
+            if (!selectedState) errors.state = "State required";
+            if (!selectedTownship) errors.township = "Township required";
+            if (!selectedType) errors.type = "Type required";
+            if (!nrcNumber) errors.number = "Citizen number required";
+            else if (nrcNumber.length !== 6) errors.number = "Must be 6 digits";
+        } else if (!passportNumber.trim()) {
+            errors.passportNumber = "Passport number is required";
+        }
 
         // Other fields
         if (!form.representiveName)
@@ -613,11 +630,45 @@ const RegisterScreen = ({ navigation, route }) => {
                         )}
                     </View>
 
-                    {/* NRC Fields */}
+                    {/* Document type and number */}
                     <View
                         style={[styles.infoCard, { overflow: "visible" }]}
                     >
-                        <Text style={styles.label}>Member NRC</Text>
+                        <Text style={styles.label}>Document Type</Text>
+                        <View style={styles.radioGroup}>
+                            {[
+                                { label: "NRC", value: "nrc" },
+                                { label: "Passport", value: "passport" },
+                            ].map((option) => {
+                                const selected = form.documentType === option.value;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        style={styles.radioOption}
+                                        onPress={() => {
+                                            handleInputChange("documentType", option.value);
+                                            setFormErrors((prev) => ({
+                                                ...prev,
+                                                passportNumber: "",
+                                            }));
+                                            setNrcErrors({});
+                                        }}
+                                        accessibilityRole="radio"
+                                        accessibilityState={{ checked: selected }}
+                                    >
+                                        <View style={styles.radioOuter}>
+                                            {selected && <View style={styles.radioInner} />}
+                                        </View>
+                                        <Text style={styles.radioLabel}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {form.documentType === "nrc" ? (
+                            <>
+                        <Text style={styles.documentNumberLabel}>Member NRC</Text>
                         <View
                             style={{
                                 flexDirection: "row",
@@ -752,6 +803,34 @@ const RegisterScreen = ({ navigation, route }) => {
                             <Text style={styles.errorText}>
                                 {nrcErrors.number}
                             </Text>
+                        )}
+                            </>
+                        ) : (
+                            <>
+                                <Text style={styles.documentNumberLabel}>Passport Number</Text>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        formErrors.passportNumber && { borderColor: "red" },
+                                    ]}
+                                    placeholder="Enter Passport Number"
+                                    placeholderTextColor="#999"
+                                    value={passportNumber}
+                                    autoCapitalize="characters"
+                                    onChangeText={(text) => {
+                                        setPassportNumber(text);
+                                        setFormErrors((prev) => ({
+                                            ...prev,
+                                            passportNumber: "",
+                                        }));
+                                    }}
+                                />
+                                {formErrors.passportNumber && (
+                                    <Text style={styles.errorText}>
+                                        {formErrors.passportNumber}
+                                    </Text>
+                                )}
+                            </>
                         )}
                     </View>
 
@@ -922,9 +1001,14 @@ const RegisterScreen = ({ navigation, route }) => {
 
             <CustomAlertModal
                 visible={alertVisible}
+                title={isRegistrationSuccess ? "Registration Successful" : undefined}
                 message={alertMessage}
                 confirmText="OK"
-                onConfirm={alertAction}
+                onConfirm={
+                    isRegistrationSuccess
+                        ? handleRegistrationSuccessConfirm
+                        : alertAction
+                }
             />
         </SafeAreaView>
     );
@@ -991,6 +1075,44 @@ const styles = StyleSheet.create({
         marginHorizontal: 16,
     },
     label: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 13,
+        color: "#555",
+        marginBottom: 8,
+    },
+    radioGroup: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 18,
+        gap: 28,
+    },
+    radioOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 4,
+    },
+    radioOuter: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 2,
+        borderColor: colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 8,
+    },
+    radioInner: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: colors.primary,
+    },
+    radioLabel: {
+        fontFamily: FontFamily.Medium,
+        fontSize: 15,
+        color: "#333",
+    },
+    documentNumberLabel: {
         fontFamily: FontFamily.Medium,
         fontSize: 13,
         color: "#555",

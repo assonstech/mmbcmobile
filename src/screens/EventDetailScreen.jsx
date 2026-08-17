@@ -430,9 +430,9 @@ const EventDetailScreen = ({ navigation, route }) => {
                         />
                     </View>
 
-                    <Text style={styles.notFoundTitle}>Event not found</Text>
+                    <Text style={styles.notFoundTitle}>Event no longer active</Text>
                     <Text style={styles.notFoundDescription}>
-                        This event may have been removed or is no longer available.
+                        This event has ended, was removed, or is currently unavailable.
                     </Text>
 
                     <TouchableOpacity

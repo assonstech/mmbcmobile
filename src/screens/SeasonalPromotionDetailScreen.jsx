@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { CircleAlert } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ImageViewing from "react-native-image-viewing";
 import DarkColors from "../colors/dark";
@@ -106,7 +107,7 @@ const SeasonalPromotionDetailScreen = ({ navigation, route }) => {
                 </View>
                 <View style={styles.notFoundContainer}>
                     <View style={styles.inactiveIconWrapper}>
-                        <Image source={CalendarIcon} style={styles.inactiveIcon} resizeMode="contain" />
+                        <CircleAlert color="#B7791F" size={42} strokeWidth={2.2} />
                     </View>
                     <Text style={styles.notFoundTitle}>Promotion no longer active</Text>
                     <Text style={styles.notFoundDescription}>

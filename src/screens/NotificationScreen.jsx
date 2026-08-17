@@ -3,18 +3,26 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  Bell,
+  CalendarDays,
+  ChevronRight,
+  CircleAlert,
+  Gift,
+  Globe2,
+  Newspaper,
+  ReceiptText,
+} from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DarkColors from "../colors/dark";
 import LightColors from "../colors/light";
 import { FontFamily } from "../styles/fontStyle";
-import NotificationIcon from "../assets/icons/notification.png";
 import {
   fetchGeneralNotifications,
   fetchPaymentNotifications,
@@ -22,6 +30,7 @@ import {
 import { fetchEventDetail } from "../controllers/EventController";
 import Screen from "../utils/Screen";
 import { useUserType } from "../utils/useUserType";
+import CustomAlertModal from "../components/CustomAlertModal";
 
 const isDarkMode = true;
 const colors = isDarkMode ? DarkColors : LightColors;
@@ -30,42 +39,61 @@ const NOTIFICATION_TABS = {
   GENERAL: "GENERAL",
   PAYMENT: "PAYMENT",
 };
-const NON_MEMBER_BLOCKED_TYPES = ["NEWSLETTER", "SEASONALPROMOTION"];
+const normalizeNotificationType = (type) => String(type || "EVENT").trim().toUpperCase();
+const NOTIFICATION_TYPE_ICONS = {
+  EVENT: CalendarDays,
+  PAYMENT: ReceiptText,
+  NEWSLETTER: Newspaper,
+  SEASONALPROMOTION: Gift,
+  KNOWLEDGE: Globe2,
+};
 
-const NotificationRow = ({ item, isLastInSection, loading, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={item.canOpen ? 0.85 : 1}
-    disabled={!item.canOpen || loading}
-    style={[styles.row, isLastInSection && styles.rowLastInSection]}
-    onPress={onPress}
-  >
-    <View style={styles.iconBox}>
-      {loading ? (
-        <ActivityIndicator size="small" color="#5A1E08" />
-      ) : (
-        <Image
-          source={NotificationIcon}
-          style={styles.rowIcon}
-          resizeMode="contain"
-        />
-      )}
-    </View>
-    <View style={styles.content}>
-      <Text style={styles.rowTitle} numberOfLines={2} ellipsizeMode="tail">
-        {item.title}
-      </Text>
-      {!!item.description && (
-        <Text style={styles.rowBody} numberOfLines={3} ellipsizeMode="tail">
-          {item.description}
-        </Text>
-      )}
-      <Text style={styles.timeText}>{item.time}</Text>
-    </View>
-  </TouchableOpacity>
+const getNotificationIcon = (type) => (
+  NOTIFICATION_TYPE_ICONS[normalizeNotificationType(type)] || Bell
 );
 
+const NotificationRow = ({ item, isLastInSection, loading, onPress }) => {
+  const TypeIcon = getNotificationIcon(item.type);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={item.canOpen ? 0.85 : 1}
+      disabled={!item.canOpen || loading}
+      style={[styles.row, isLastInSection && styles.rowLastInSection]}
+      onPress={onPress}
+    >
+      <View style={styles.iconBox}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#5A1E08" />
+        ) : (
+          <TypeIcon color="#5A1E08" size={23} strokeWidth={2.2} />
+        )}
+      </View>
+      <View style={styles.content}>
+        <Text style={styles.rowTitle} numberOfLines={2} ellipsizeMode="tail">
+          {item.title}
+        </Text>
+        {!!item.description && (
+          <Text style={styles.rowBody} numberOfLines={3} ellipsizeMode="tail">
+            {item.description}
+          </Text>
+        )}
+        <Text style={styles.timeText}>{item.time}</Text>
+      </View>
+      {item.canOpen && !loading && (
+        <ChevronRight
+          color={colors.loginAccountColor}
+          size={20}
+          strokeWidth={2}
+          style={styles.arrowIcon}
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
+
 const NotificationScreen = ({ navigation }) => {
-  const { isNonMember } = useUserType();
+  const { isMember } = useUserType();
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState(NOTIFICATION_TABS.GENERAL);
   const [page, setPage] = useState(1);
@@ -74,6 +102,8 @@ const NotificationScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [openingNotificationId, setOpeningNotificationId] = useState(null);
+  const [missingEventAlertVisible, setMissingEventAlertVisible] = useState(false);
+  const [memberOnlyAlertVisible, setMemberOnlyAlertVisible] = useState(false);
   const listRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -93,11 +123,7 @@ const NotificationScreen = ({ navigation }) => {
 
     if (requestId !== requestIdRef.current) return;
 
-    const formatted = result.notifications
-      .map(formatNotification)
-      .filter((item) => (
-        !isNonMember || !NON_MEMBER_BLOCKED_TYPES.includes(item.type)
-      ));
+    const formatted = result.notifications.map(formatNotification);
 
     setNotifications((current) => (
       shouldAppend ? [...current, ...formatted] : formatted
@@ -106,7 +132,7 @@ const NotificationScreen = ({ navigation }) => {
     setTotalPages(result.pagination?.totalPages || 1);
     setLoading(false);
     setLoadingMore(false);
-  }, [activeTab, isNonMember]);
+  }, [activeTab]);
 
   useEffect(() => {
     loadNotifications();
@@ -171,17 +197,21 @@ const NotificationScreen = ({ navigation }) => {
   };
 
   const openNotification = (item) => {
-    if (!item.referenceId) return;
+    const type = normalizeNotificationType(item.type);
 
-    if (item.isMemberOnly) {
-      Alert.alert(
-        "Member only",
-        "This notification content is available for MMBC members only."
-      );
+    if (type !== "EVENT" && !isMember) {
+      setMemberOnlyAlertVisible(true);
       return;
     }
 
-    switch (item.type) {
+    if (!item.referenceId) {
+      if (type === "EVENT") {
+        setMissingEventAlertVisible(true);
+      }
+      return;
+    }
+
+    switch (type) {
       case "EVENT":
         navigation.navigate(Screen.EventDetailScreen, {
           item: { id: String(item.referenceId) },
@@ -299,14 +329,31 @@ const NotificationScreen = ({ navigation }) => {
           }
         />
       )}
+
+      <CustomAlertModal
+        visible={missingEventAlertVisible}
+        title="Event no longer exists"
+        message="This event was removed or is no longer available."
+        icon={<CircleAlert color={colors.button} size={24} strokeWidth={2.2} />}
+        confirmText="OK"
+        onConfirm={() => setMissingEventAlertVisible(false)}
+      />
+      <CustomAlertModal
+        visible={memberOnlyAlertVisible}
+        title="Member only"
+        message="This notification content is available for MMBC members only."
+        icon={<CircleAlert color={colors.button} size={24} strokeWidth={2.2} />}
+        confirmText="OK"
+        onConfirm={() => setMemberOnlyAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 };
 
-const formatNotification = (item, isNonMember = false) => {
-  const type = (item.type || "EVENT").toUpperCase();
+const formatNotification = (item) => {
+  const type = normalizeNotificationType(item.type);
   const referenceId = item.referenceId || item.eventId;
-  const isMemberOnly = isNonMember && NON_MEMBER_BLOCKED_TYPES.includes(type);
+  const canOpen = Boolean(referenceId) || type === "EVENT";
 
   return {
     id: item.notificationId || item.id,
@@ -314,8 +361,7 @@ const formatNotification = (item, isNonMember = false) => {
     description: item.description || "",
     type,
     referenceId,
-    isMemberOnly,
-    canOpen: Boolean(referenceId),
+    canOpen,
     createdDate: item.createdDate,
     section: getDateSection(item.createdDate),
     time: formatTime(item.createdDate),
@@ -439,14 +485,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 14,
   },
-  rowIcon: {
-    width: 22,
-    height: 22,
-    tintColor: "#5A1E08",
-  },
   content: {
     flex: 1,
     minWidth: 0,
+  },
+  arrowIcon: {
+    alignSelf: "center",
+    marginLeft: 8,
   },
   rowTitle: {
     fontFamily: FontFamily.SemiBold,

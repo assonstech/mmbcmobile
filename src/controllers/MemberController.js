@@ -177,11 +177,23 @@ export const getNrcTypes = async () => {
 
 export const createMember = async (postBody) => {
   try {
-    const res = await http.post("/member/register-member", postBody)
-    console.log("res",res)
-    return res
+    const response = await http.apiClient.post("/member/register-member", postBody);
+    console.log("response",response.code)
+
+    return {
+      ...response.data,
+      code: response.status,
+    };
   } catch (err) {
-    console.log(err)
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message,
+      code: err.response?.status,
+      data: err.response?.data || null,
+    };
   }
 }
 
